@@ -1,0 +1,22 @@
+
+# OS/Editor
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+# Archives & junk
+*.log
+*.tmp
+*.bak
+Thumbs.db
+# Web (no Node in this project, but ignore if someone sins)
+node_modules/
+.npm/
+.eslintcache
+.dist/
+dist/
+.out/
+.cache/
+# Vendored or symlinked UI assets live here (managed by suite Makefile)
+src/knowledge_web/static/ui
