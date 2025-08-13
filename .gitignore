@@ -1,15 +1,16 @@
-
-# OS/Editor
+# OS / Editor
 .DS_Store
 *.swp
 *.swo
 .idea/
 .vscode/
+
 # Archives & junk
 *.log
 *.tmp
 *.bak
 Thumbs.db
+
 # Web (no Node in this project, but ignore if someone sins)
 node_modules/
 .npm/
@@ -18,5 +19,14 @@ node_modules/
 dist/
 .out/
 .cache/
-# Vendored or symlinked UI assets live here (managed by suite Makefile)
+
+# Python
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+*.py[cod]
+
+# Vendored or symlinked UI assets (managed by suite Makefile)
 src/knowledge_web/static/ui
