@@ -1,6 +1,0 @@
-/* Minimal styles for demo */
-.list-item { padding:4px; border-bottom:1px solid #243140; }
-.list-item .title { font-weight:600; }
-.list-item .subtitle { font-size:12px; opacity:0.7; }
-.list-item .actions { margin-top:4px; }
-.btn { background:#5ec3ff; color:#001018; border:none; border-radius:6px; padding:2px 6px; cursor:pointer; }
