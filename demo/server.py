@@ -21,7 +21,11 @@ APP_ROOT      = Path(__file__).resolve().parents[1]
 REAL_TEMPLATES= APP_ROOT / "src" / "templates"
 REAL_STATIC   = APP_ROOT / "src" / "static"
 APP_SRC       = APP_ROOT / "src"
-UI_ROOT       = APP_ROOT / "submodules" / "deployable-ui" / "src" / "ui"
+
+# Prefer vendored UI assets but fall back to submodule when available.
+_UI_SUBMODULE = APP_ROOT / "submodules" / "deployable-ui" / "src" / "ui"
+_UI_VENDOR    = APP_ROOT / "src" / "ui"
+UI_ROOT       = _UI_SUBMODULE if (_UI_SUBMODULE / "js").exists() else _UI_VENDOR
 
 app = FastAPI(title="Deployable Web Demo (Fake API)")
 
@@ -348,15 +352,18 @@ def favicon(): return BaseResponse(status_code=204)
 
 @app.get("/health")
 def health():
+    ui_js_dir = UI_ROOT / "js"
+    ui_css_dir = UI_ROOT / "css"
+    ui_assets_dir = UI_ROOT / "assets"
     return {
         "status": "ok",
-        "demo_templates": str(DEMO_TEMPLATES),
-        "demo_static": str(DEMO_STATIC),
-        "ui_js_dir": str(UI_JS_DIR),
-        "ui_css_dir": str(UI_CSS_DIR),
-        "ui_assets_dir": str(UI_ASSETS_DIR),
-        "ui_js_present": UI_JS_DIR.exists(),
-        "ui_css_present": UI_CSS_DIR.exists(),
+        "templates": str(REAL_TEMPLATES),
+        "static": str(REAL_STATIC),
+        "ui_js_dir": str(ui_js_dir),
+        "ui_css_dir": str(ui_css_dir),
+        "ui_assets_dir": str(ui_assets_dir),
+        "ui_js_present": ui_js_dir.exists(),
+        "ui_css_present": ui_css_dir.exists(),
     }
 
 @app.get("/healthz")
