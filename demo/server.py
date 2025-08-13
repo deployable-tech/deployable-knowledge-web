@@ -133,6 +133,14 @@ class FileStore:
             except OSError:
                 pass
 
+    def delete(self, sid: str) -> None:
+        """Remove the stored session file if it exists."""
+        p = self._path(sid)
+        try:
+            p.unlink()
+        except FileNotFoundError:
+            pass
+
 class SessionManager:
     def __init__(self, settings: Settings):
         self.settings = settings
