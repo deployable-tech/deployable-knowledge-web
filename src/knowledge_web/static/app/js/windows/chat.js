@@ -1,59 +1,12 @@
-import { spawnWindow } from "/static/ui/js/framework.js";
+import { createChatWindow as createUiChatWindow } from "/static/ui/js/windows/chat.js";
 import { chat, chatStream } from "../sdk.js";
 import { Store } from "../store.js";
 import { md, htmlEscape } from "../util.js";
 
 export function createChatWindow() {
-  spawnWindow({
-    id: "win_chat",
-    window_type: "window_generic",
-    title: "Assistant Chat",
-    col: "right",
-    unique: true,
-    resizable: true,
-    Elements: [
-      { type: "text_area", id: "chat_log", rows: 14, value: "" },
-      { type: "text_field", id: "chat_input", placeholder: "Type a message…" }
-    ]
-  });
-  const win = document.getElementById("win_chat");
-  const taRow = win?.querySelector("#chat_log")?.closest(".row");
-  if (!win || !taRow) return {};
-  const log = document.createElement("div");
-  log.id = "chat_log";
-  log.className = "chat-log";
-  taRow.replaceWith(log);
-  const input = win.querySelector("#chat_input");
-  const inputRow = input?.closest(".row");
-  const bar = document.createElement("div");
-  bar.className = "chat-input";
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "btn";
-  btn.textContent = "Send";
-  inputRow?.replaceWith(bar);
-  bar.append(input, btn);
-  const pushUser = (text) => {
-    const d = document.createElement("div");
-    d.className = "msg you";
-    d.innerHTML = "You: " + htmlEscape(text);
-    log.appendChild(d);
-    log.scrollTop = log.scrollHeight;
-  };
-  const pushAssistant = () => {
-    const d = document.createElement("div");
-    d.className = "msg assistant";
-    d.innerHTML = "…";
-    log.appendChild(d);
-    log.scrollTop = log.scrollHeight;
-    return d;
-  };
-  async function send() {
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
-    pushUser(text);
-    const bubble = pushAssistant();
+  const ui = createUiChatWindow({ title: "Assistant Chat" });
+
+  ui.onSend = async (text, bubble) => {
     try {
       const { reader, decoder } = await chatStream({
         message: text,
@@ -90,7 +43,6 @@ export function createChatWindow() {
             bubble.innerHTML = md(acc);
           }
         }
-        log.scrollTop = log.scrollHeight;
       }
     } catch {
       try {
@@ -105,8 +57,8 @@ export function createChatWindow() {
         bubble.innerHTML = `<em>Error:</em> ${htmlEscape(e2.message)}`;
       }
     }
-  }
-  btn.addEventListener("click", send);
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
-  return { log, pushUser, pushAssistant };
+  };
+
+  return ui;
 }
+
