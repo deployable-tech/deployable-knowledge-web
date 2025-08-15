@@ -35,6 +35,7 @@ export function createChatWindow() {
           session_id: (Store.sessionId || "") + "",
           persona: Store.persona || "",
           inactive: Store.inactiveList?.() || [],
+          model: Store.model || "",
         });
 
         let buf = "";
@@ -93,6 +94,7 @@ export function createChatWindow() {
             session_id: (Store.sessionId || "") + "",
             persona: Store.persona || "",
             inactive: Store.inactiveList?.() || [],
+            model: Store.model || "",
           });
           placeholder.innerHTML = md(res.response ?? "(no response)");
           autoscroll();
