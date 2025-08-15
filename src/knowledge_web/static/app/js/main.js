@@ -1,5 +1,5 @@
 // /app/main.js
-import { initFramework } from "/static/ui/js/framework.js";
+import { initFramework, spawnWindow  } from "/static/ui/js/framework.js";
 import { bus } from "/static/ui/js/components.js";
 import { Store } from "./store.js";
 import { createChatWindow } from "./windows/chat.js";
@@ -7,6 +7,7 @@ import { createDocsWindow, refreshDocs, handleDocAction } from "./windows/docs.j
 import { createSegmentsWindow, refreshSegments, handleSegmentAction, setSegmentsSource, openSegmentViewer } from "./windows/segments.js";
 import { createSearchWindow } from "./windows/search.js";
 import { openSessionsWindow, loadChatHistory } from "./windows/sessions.js";
+
 import { openPersonaEditor } from "./windows/persona.js";
 import { initMenu } from "/static/ui/js/menu.js";
 
@@ -20,66 +21,6 @@ async function ensureChatSession() {
   } catch (e) {
     console.error("session", e);
   }
-}
-
-function setupMenus(chatUI) {
-  document.querySelectorAll('.menu').forEach(menu => {
-    const trigger = menu.querySelector('.menu-trigger');
-    const drop = menu.querySelector('.menu-dropdown');
-    if (!trigger || !drop) return;
-    const close = () => {
-      trigger.setAttribute('aria-expanded', 'false');
-      drop.setAttribute('aria-hidden', 'true');
-    };
-    trigger.addEventListener('click', e => {
-      e.stopPropagation();
-      const open = trigger.getAttribute('aria-expanded') === 'true';
-      document.querySelectorAll('.menu .menu-dropdown[aria-hidden="false"]').forEach(d => {
-        d.setAttribute('aria-hidden', 'true');
-        d.previousElementSibling?.setAttribute('aria-expanded', 'false');
-      });
-      if (!open) {
-        trigger.setAttribute('aria-expanded', 'true');
-        drop.setAttribute('aria-hidden', 'false');
-      } else {
-        close();
-      }
-    });
-    document.addEventListener('click', e => { if (!menu.contains(e.target)) close(); });
-  });
-
-  document.querySelector('#user-menu-dropdown [data-action="logout"]')?.addEventListener('click', () => {
-    window.location.href = '/logout';
-  });
-
-  document.querySelectorAll('#tools-menu-dropdown .menu-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const act = btn.dataset.action;
-      if (act === 'tool-chat') document.getElementById('win_chat')?.scrollIntoView();
-      if (act === 'tool-docs') document.getElementById('win_docs')?.scrollIntoView();
-      if (act === 'tool-segments') document.getElementById('win_segments')?.scrollIntoView();
-      if (act === 'tool-sessions') openSessionsWindow();
-      if (act === 'tool-persona') openPersonaEditor();
-      if (act === 'tool-refresh') { refreshDocs(); refreshSegments(); }
-    });
-  });
-
-  document.querySelectorAll('#menu-dropdown .menu-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const act = btn.dataset.action;
-      if (act === 'new-chat') {
-        chatUI.log.innerHTML = '';
-        Store.sessionId = '';
-        ensureChatSession();
-      }
-      if (act === 'toggle-search') {
-        const w = document.getElementById('win_search');
-        if (w) w.style.display = w.style.display === 'none' ? '' : 'none';
-      }
-      if (act === 'prompt-templates') alert('Prompt templates not implemented');
-      if (act === 'settings') alert('Settings not implemented');
-    });
-  });
 }
 
 function registerBusHandlers() {
@@ -96,7 +37,7 @@ function registerBusHandlers() {
     }
     if (winId === "win_sessions" && elementId === "session_list" && action === "open" && item?.session_id) {
       Store.sessionId = item.session_id;
-      await loadChatHistory(chatUI, Store.sessionId);
+      await loadChatHistory(Store.sessionId);
     }
   });
   bus.addEventListener("ui:list-select", async (ev) => {
@@ -147,8 +88,7 @@ initMenu((action) => {
     initDocsController("win_docs");
   }
   if (action === "tool-sessions") {
-    spawnWindow({ id: "win_sessions", window_type: "window_sessions", title: "Chat History", col: "left", unique: true });
-    initSessionsController("win_sessions");
+   openSessionsWindow();              
   }
   if (action === "tool-segments") {
     spawnWindow({ id: "win_segments", window_type: "window_segments", title: "DB Segments", col: "right", unique: true });
@@ -157,13 +97,13 @@ initMenu((action) => {
 }, "tools-menu-trigger", "tools-menu-dropdown");
 
 
+
 await ensureChatSession();
 const chatUI = createChatWindow();
 createSearchWindow();
 createDocsWindow();
 createSegmentsWindow();
-setupMenus(chatUI);
 registerBusHandlers();
 await refreshDocs();
 await refreshSegments();
-await loadChatHistory(chatUI, Store.sessionId);
+await loadChatHistory(Store.sessionId);
