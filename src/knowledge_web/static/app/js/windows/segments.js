@@ -65,19 +65,19 @@ export async function openSegmentViewer(id) {
       { type: "text", id: "seg_content", value: "" }
     ]
   });
-  const row = win?.querySelector("#seg_content")?.closest(".row");
-  if (row) {
+  const placeholder = win?.querySelector("#seg_content");
+  if (placeholder) {
     const viewer = document.createElement("div");
     viewer.className = "segment-view";
     viewer.innerHTML = `
       <div class="kv">
-        <div><strong>ID:</strong> ${htmlEscape(seg.id||"")}</div>
-        <div><strong>Source:</strong> ${htmlEscape(seg.source||"")}</div>
+        <div><strong>ID:</strong> ${htmlEscape(seg.id || "")}</div>
+        <div><strong>Source:</strong> ${htmlEscape(seg.source || "")}</div>
         <div><strong>Index:</strong> ${htmlEscape(String(seg.segment_index ?? ""))}</div>
-        <div><strong>Priority:</strong> ${htmlEscape(seg.priority||"")}</div>
+        <div><strong>Priority:</strong> ${htmlEscape(seg.priority || "")}</div>
         <div><strong>Chars:</strong> ${htmlEscape(String(seg.start_char ?? ""))}–${htmlEscape(String(seg.end_char ?? ""))}</div>
       </div>
       <div class="prose">${md(seg.text || seg.preview || "(empty)")}</div>`;
-    row.replaceWith(viewer);
+    placeholder.replaceWith(viewer);
   }
 }
