@@ -51,7 +51,10 @@ export async function handleSegmentAction(action, item) {
 export async function openSegmentViewer(id) {
   const seg = await getSegment(id);
   const winId = `seg_view_${id}`;
-  spawnWindow({
+  // ``spawnWindow`` may adjust the element's id to avoid collisions.
+  // Capture the returned node so we always reference the correct window
+  // regardless of any internal id renaming.
+  const win = spawnWindow({
     id: winId,
     window_type: "window_generic",
     title: seg?.source ? `Segment • ${seg.source}` : "Segment",
@@ -62,7 +65,6 @@ export async function openSegmentViewer(id) {
       { type: "text", id: "seg_content", value: "" }
     ]
   });
-  const win = document.getElementById(winId);
   const row = win?.querySelector("#seg_content")?.closest(".row");
   if (row) {
     const viewer = document.createElement("div");
