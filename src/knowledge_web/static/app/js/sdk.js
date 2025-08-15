@@ -103,3 +103,23 @@ export async function searchSegments({ q, top_k = 10, inactive = [] }) {
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return await res.json(); // array of segments or {results:[...]}
 }
+
+// --- sessions (basic) -------------------------------------------------------
+
+export async function listSessions() {
+  const res = await fetch(`/sessions`, {
+    headers: { Accept: "application/json", ...csrfHeader() },
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return await res.json(); // [{ id, title, created_at, ... }]
+}
+
+export async function getSession(session_id) {
+  const res = await fetch(`/sessions/${encodeURIComponent(session_id)}`, {
+    headers: { Accept: "application/json", ...csrfHeader() },
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return await res.json(); // { session_id, created_at, title, summary, history | messages, ... }
+}
