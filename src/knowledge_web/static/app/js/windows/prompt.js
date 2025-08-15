@@ -11,12 +11,19 @@ export function openPromptEditor() {
     unique: true,
     resizable: false,
     Elements: [
-      { type: "text_area", id: "prompt_text", rows: 6, value: Store.prompt || "" },
-      { type: "button", id: "prompt_save", label: "Save" }
+      { type: "text_area", id: "prompt_text", rows: 6, value: Store.prompt || "" }
     ]
   });
   const modal = document.getElementById("modal_prompt");
-  modal.querySelector("#prompt_save")?.addEventListener("click", () => {
+  const content = modal?.querySelector(".content");
+  const row = document.createElement("div");
+  row.className = "row";
+  const btn = document.createElement("button");
+  btn.id = "prompt_save";
+  btn.textContent = "Save";
+  row.appendChild(btn);
+  content?.appendChild(row);
+  btn.addEventListener("click", () => {
     const val = modal.querySelector("#prompt_text")?.value || "";
     Store.prompt = val;
     modal.remove();

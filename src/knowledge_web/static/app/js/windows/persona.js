@@ -11,12 +11,19 @@ export function openPersonaEditor() {
     unique: true,
     resizable: false,
     Elements: [
-      { type: "text_area", id: "persona_text", rows: 6, value: Store.persona || "" },
-      { type: "button", id: "persona_save", label: "Save" }
+      { type: "text_area", id: "persona_text", rows: 6, value: Store.persona || "" }
     ]
   });
   const modal = document.getElementById("modal_persona");
-  modal.querySelector("#persona_save")?.addEventListener("click", () => {
+  const content = modal?.querySelector(".content");
+  const row = document.createElement("div");
+  row.className = "row";
+  const btn = document.createElement("button");
+  btn.id = "persona_save";
+  btn.textContent = "Save";
+  row.appendChild(btn);
+  content?.appendChild(row);
+  btn.addEventListener("click", () => {
     const val = modal.querySelector("#persona_text")?.value || "";
     Store.persona = val;
     modal.remove();

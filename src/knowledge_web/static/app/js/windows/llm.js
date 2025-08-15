@@ -16,12 +16,19 @@ export function openLLMSettings() {
     unique: true,
     resizable: false,
     Elements: [
-      { type: "select", id: "model_select", label: "Model", options: MODEL_OPTIONS, value: Store.model || MODEL_OPTIONS[0].value },
-      { type: "button", id: "model_save", label: "Save" }
+      { type: "select", id: "model_select", label: "Model", options: MODEL_OPTIONS, value: Store.model || MODEL_OPTIONS[0].value }
     ]
   });
   const modal = document.getElementById("modal_llm");
-  modal.querySelector("#model_save")?.addEventListener("click", () => {
+  const content = modal?.querySelector(".content");
+  const row = document.createElement("div");
+  row.className = "row";
+  const btn = document.createElement("button");
+  btn.id = "model_save";
+  btn.textContent = "Save";
+  row.appendChild(btn);
+  content?.appendChild(row);
+  btn.addEventListener("click", () => {
     const val = modal.querySelector("#model_select")?.value || "";
     Store.model = val;
     modal.remove();

@@ -10,9 +10,13 @@ import { openSessionsWindow, loadChatHistory } from "./windows/sessions.js";
 
 import { openPersonaEditor } from "./windows/persona.js";
 import { openPromptEditor } from "./windows/prompt.js";
-import { openUISettings } from "./windows/ui_settings.js";
 import { openLLMSettings } from "./windows/llm.js";
 import { initMenu } from "/static/ui/js/menu.js";
+
+async function openUISettings() {
+  const mod = await import("/static/ui/js/windows/ui_settings.js");
+  mod.openUISettings();
+}
 
 initFramework();
 
