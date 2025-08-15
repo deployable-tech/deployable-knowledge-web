@@ -53,3 +53,7 @@
 .theme-red    { --h: 10;  }
 .theme-gray   { --h: 220; --sat: 6%; }
 
+#columns {
+  grid-template-columns: 1fr 4px 3fr;
+}
+

@@ -54,12 +54,13 @@ export async function removeSegment(id) {
   return await res.json();
 }
 // --- chat (non-stream) ---
-export async function chat({ message, session_id, persona = "", inactive = [] }) {
+export async function chat({ message, session_id, persona = "", inactive = [], model = "" }) {
   const fd = new FormData();
   fd.append("message", message);
   fd.append("session_id", session_id);
   fd.append("persona", persona);
   fd.append("inactive", JSON.stringify(inactive));
+  if (model) fd.append("model", model);
   const res = await fetch(`/chat?stream=false`, {
     method: "POST",
     body: fd,
@@ -71,12 +72,13 @@ export async function chat({ message, session_id, persona = "", inactive = [] })
 }
 
 // --- chat (streaming SSE-ish via fetch body reader) ---
-export async function chatStream({ message, session_id, persona = "", inactive = [] }) {
+export async function chatStream({ message, session_id, persona = "", inactive = [], model = "" }) {
   const params = new URLSearchParams();
   params.set("message", message);
   params.set("session_id", session_id);
   params.set("persona", persona);
   if (inactive?.length) params.set("inactive", JSON.stringify(inactive));
+  if (model) params.set("model", model);
 
   const res = await fetch(`/chat?stream=true`, {
     method: "POST",
