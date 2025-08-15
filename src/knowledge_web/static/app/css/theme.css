@@ -8,11 +8,11 @@
   --txt: 92%;        /* text lightness */
 
   /* Layout & typography */
-  --titlebar-height: 36px;
-  --font-size-base: 14px;
-  --font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
-  --win-gap-vertical: 6px;
-  --win-gap-horizontal: 8px;
+  --titlebar-height: 24px;
+  --font-size-base: 12px;
+  --font-family: "Rajdhani", "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+  --win-gap-vertical: 4px;
+  --win-gap-horizontal: 6px;
 
   --positive-h: 150;
   --negative-h: 10;
@@ -43,7 +43,7 @@
   --accent-2: var(--neutral-accent);
 
   --shadow: 0 10px 30px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
-  --win-radius: 16px;
+  --win-radius: 8px;
   --backdrop: rgba(2, 6, 12, .55);
 }
 
