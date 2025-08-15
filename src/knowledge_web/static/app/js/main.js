@@ -1,5 +1,5 @@
 // /app/main.js
-import { initFramework, spawnWindow  } from "/static/ui/js/framework.js";
+import { initFramework } from "/static/ui/js/framework.js";
 import { bus } from "/static/ui/js/components.js";
 import { Store } from "./store.js";
 import { createChatWindow } from "./windows/chat.js";
@@ -9,9 +9,18 @@ import { createSearchWindow } from "./windows/search.js";
 import { openSessionsWindow, loadChatHistory } from "./windows/sessions.js";
 
 import { openPersonaEditor } from "./windows/persona.js";
+import { openPromptEditor } from "./windows/prompt.js";
+import { openUISettings } from "./windows/ui_settings.js";
+import { openLLMSettings } from "./windows/llm.js";
 import { initMenu } from "/static/ui/js/menu.js";
 
 initFramework();
+
+function setDefaultLayout() {
+  const cols = document.getElementById("columns");
+  if (cols) cols.style.gridTemplateColumns = "1fr 4px 3fr";
+}
+setDefaultLayout();
 
 async function ensureChatSession() {
   try {
@@ -51,25 +60,18 @@ function registerBusHandlers() {
 
 
 // Header “Menu ▾”
-initMenu(async (action) => {
-  if (action === "new-chat") {
-    Store.sessionId = await api.startNewSession();
-    initSessionsController("win_sessions");
-  }
+initMenu((action) => {
   if (action === "toggle-search") {
-    const id = "win_search";
-    const existing = document.getElementById(id);
+    const existing = document.getElementById("win_search");
     if (existing) {
       existing.remove();
     } else {
-      spawnWindow({ id, window_type: "window_search", title: "Search Documents", col: "right", unique: true });
-      initSearchController(id);
-      if (Store.lastQuery) runSearch(Store.lastQuery, id);
+      createSearchWindow();
     }
   }
-  if (action === "edit-persona") openPersonaModal();
-  if (action === "settings")     openSettingsModal();
   if (action === "prompt-templates") openPromptEditor();
+  if (action === "settings") openUISettings();
+  if (action === "llm-settings") openLLMSettings();
 });
 
 // Header “User ▾”
@@ -80,19 +82,23 @@ initMenu((action) => {
 // “Tools ▾”
 initMenu((action) => {
   if (action === "tool-chat") {
-    spawnWindow({ id: "win_chat", window_type: "window_chat_ui", title: "Assistant Chat", col: "right", unique: true });
-    initChatController();
+    createChatWindow();
   }
   if (action === "tool-docs") {
-    spawnWindow({ id: "win_docs", window_type: "window_documents", title: "Document Library", col: "left", unique: true });
-    initDocsController("win_docs");
+    createDocsWindow();
   }
   if (action === "tool-sessions") {
-   openSessionsWindow();              
+    openSessionsWindow();
+  }
+  if (action === "tool-persona") {
+    openPersonaEditor();
   }
   if (action === "tool-segments") {
-    spawnWindow({ id: "win_segments", window_type: "window_segments", title: "DB Segments", col: "right", unique: true });
-    initSegmentsController("win_segments");
+    createSegmentsWindow();
+  }
+  if (action === "tool-refresh") {
+    refreshDocs();
+    refreshSegments();
   }
 }, "tools-menu-trigger", "tools-menu-dropdown");
 
@@ -103,6 +109,7 @@ const chatUI = createChatWindow();
 createSearchWindow();
 createDocsWindow();
 createSegmentsWindow();
+await openSessionsWindow();
 registerBusHandlers();
 await refreshDocs();
 await refreshSegments();
