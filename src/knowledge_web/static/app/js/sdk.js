@@ -158,7 +158,8 @@ function uuid() {
 const LLM_LS_SERVICES = "llm.services";
 const LLM_LS_MODELS = "llm.models";
 const LLM_LS_SELECTION = "llm.selection";
-const LLM_USE_MOCK = (localStorage.getItem("llm.mock") || "true") === "true";
+// Default to using the real API unless explicitly overridden via localStorage
+const LLM_USE_MOCK = (localStorage.getItem("llm.mock") || "false") === "true";
 
 function seedMock() {
   if (!LLM_USE_MOCK) return;

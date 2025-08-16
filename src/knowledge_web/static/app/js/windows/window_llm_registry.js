@@ -1,4 +1,5 @@
 import { spawnWindow } from "/static/ui/js/framework.js";
+import { createItemList, getComponent, bus } from "/static/ui/js/components.js";
 import { llm } from "../sdk.js";
 import { attachLLMSelect } from "../components/llm_select.js";
 
@@ -7,10 +8,11 @@ export async function openLLMRegistry() {
   const win = spawnWindow({
     id: "win_llm_registry",
     window_type: "window_generic",
-    title: "Models & Services",
+    title: "LLM Services",
+    modal: true,
     unique: true,
-    resizable: true,
-    width: 600,
+    resizable: false,
+    width: 500,
     height: 400,
   });
   const content = win.querySelector(".content");
@@ -24,101 +26,51 @@ export async function openLLMRegistry() {
   content.appendChild(topSel);
   attachLLMSelect(topSel);
 
-  const body = document.createElement("div");
-  body.style.display = "flex";
-  body.style.gap = "8px";
-  body.style.marginTop = "8px";
-  content.appendChild(body);
+  const list = createItemList("win_llm_registry", {
+    id: "svc_list",
+    item_template: {
+      elements: [
+        { type: "text", bind: "name" },
+        { type: "button", label: "Open", action: "open" },
+        { type: "button", label: "Edit", action: "edit" },
+        { type: "button", label: "Delete", action: "delete", variant: "danger" },
+      ],
+    },
+  });
+  content.appendChild(list);
 
-  const svcCol = document.createElement("div");
-  svcCol.style.flex = "1";
-  body.appendChild(svcCol);
-  svcCol.innerHTML = `<div class="list-header"><span>Services</span> <button class="btn" id="svc_add">Add</button></div><ul id="svc_list"></ul>`;
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const add = document.createElement("button");
+  add.className = "btn";
+  add.textContent = "Add Service";
+  actions.appendChild(add);
+  content.appendChild(actions);
 
-  const mdlCol = document.createElement("div");
-  mdlCol.style.flex = "1";
-  body.appendChild(mdlCol);
-  mdlCol.innerHTML = `<div class="list-header"><span>Models</span> <button class="btn" id="mdl_add">Add</button></div><ul id="mdl_list"></ul>`;
+  add.addEventListener("click", () => openServiceForm());
 
-  if (llm.useMock) {
-    const badge = document.createElement("span");
-    badge.textContent = "Mock API";
-    badge.style.fontSize = "0.75em";
-    badge.style.marginLeft = "8px";
-    win.querySelector(".title")?.appendChild(badge);
-  }
-
-  let currentService = (await llm.getSelection()).service_id;
+  bus.addEventListener("ui:list-action", async (e) => {
+    const { winId, elementId, action, item } = e.detail || {};
+    if (winId !== "win_llm_registry" || elementId !== "svc_list") return;
+    if (action === "open") {
+      await llm.setSelection({ service_id: item.id, model_id: null });
+    } else if (action === "edit") {
+      openServiceForm(item);
+    } else if (action === "delete") {
+      if (confirm("Delete service?")) {
+        await llm.deleteService(item.id);
+        refreshServices();
+      }
+    }
+  });
 
   async function refreshServices() {
-    const list = await llm.listServices();
-    const ul = svcCol.querySelector("#svc_list");
-    ul.innerHTML = "";
-    for (const s of list) {
-      const li = document.createElement("li");
-      li.textContent = s.name;
-      li.style.cursor = "pointer";
-      if (!s.is_enabled) li.style.opacity = "0.5";
-      li.addEventListener("click", () => {
-        currentService = s.id;
-        refreshModels();
-      });
-      const edit = document.createElement("button");
-      edit.textContent = "Edit";
-      edit.className = "btn btn-small";
-      edit.addEventListener("click", ev => { ev.stopPropagation(); openServiceForm(s); });
-      const del = document.createElement("button");
-      del.textContent = "Delete";
-      del.className = "btn btn-small";
-      del.addEventListener("click", async ev => {
-        ev.stopPropagation();
-        if (confirm("Delete service?")) {
-          await llm.deleteService(s.id);
-          if (currentService === s.id) currentService = null;
-          refreshServices();
-          refreshModels();
-        }
-      });
-      const tog = document.createElement("button");
-      tog.textContent = s.is_enabled ? "Disable" : "Enable";
-      tog.className = "btn btn-small";
-      tog.addEventListener("click", async ev => {
-        ev.stopPropagation();
-        await llm.updateService(s.id, { is_enabled: !s.is_enabled });
-        refreshServices();
-      });
-      li.append(" ", edit, " ", tog, " ", del);
-      ul.appendChild(li);
-    }
+    const services = await llm.listServices();
+    getComponent("win_llm_registry", "svc_list").render(services);
   }
 
-  async function refreshModels() {
-    const ul = mdlCol.querySelector("#mdl_list");
-    ul.innerHTML = "";
-    if (!currentService) return;
-    const models = await llm.listModels(currentService);
-    for (const m of models) {
-      const li = document.createElement("li");
-      li.textContent = m.name;
-      li.style.cursor = "pointer";
-      const edit = document.createElement("button");
-      edit.textContent = "Edit";
-      edit.className = "btn btn-small";
-      edit.addEventListener("click", ev => { ev.stopPropagation(); openModelForm(m); });
-      const del = document.createElement("button");
-      del.textContent = "Delete";
-      del.className = "btn btn-small";
-      del.addEventListener("click", async ev => {
-        ev.stopPropagation();
-        if (confirm("Delete model?")) {
-          await llm.deleteModel(m.id);
-          refreshModels();
-        }
-      });
-      li.append(" ", edit, " ", del);
-      ul.appendChild(li);
-    }
-  }
+  window.addEventListener("llm:services:updated", refreshServices);
+  await refreshServices();
 
   async function openServiceForm(service) {
     const id = "modal_service";
@@ -177,60 +129,5 @@ export async function openLLMRegistry() {
     });
   }
 
-  async function openModelForm(model) {
-    const id = "modal_model";
-    if (document.getElementById(id)) return;
-    spawnWindow({
-      id,
-      window_type: "window_generic",
-      title: model?.id ? "Edit Model" : "Add Model",
-      modal: true,
-      resizable: false,
-      unique: true,
-      Elements: [
-        { type: "input", id: "mdl_name", label: "Name", value: model?.name || "" },
-        { type: "input", id: "mdl_modality", label: "Modality", value: model?.modality || "" },
-        { type: "number", id: "mdl_ctx", label: "Context Window", value: model?.context_window ?? "" },
-        { type: "checkbox", id: "mdl_tools", label: "Supports Tools", checked: model?.supports_tools || false },
-        { type: "text_area", id: "mdl_extra", label: "Extra", rows: 3, value: JSON.stringify(model?.extra || {}, null, 2) },
-      ]
-    });
-    const modal = document.getElementById(id);
-    const content = modal.querySelector(".content");
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const save = document.createElement("button");
-    save.className = "btn";
-    save.textContent = "Save";
-    actions.appendChild(save);
-    content.appendChild(actions);
-    save.addEventListener("click", async () => {
-      const name = modal.querySelector("#mdl_name").value.trim();
-      if (!name) { alert("name required"); return; }
-      let extra = {};
-      const extraTxt = modal.querySelector("#mdl_extra").value.trim();
-      if (extraTxt) { try { extra = JSON.parse(extraTxt); } catch { alert("Invalid JSON"); return; } }
-      const payload = {
-        service_id: model?.service_id || currentService,
-        name,
-        modality: modal.querySelector("#mdl_modality").value.trim() || null,
-        context_window: Number(modal.querySelector("#mdl_ctx").value) || null,
-        supports_tools: modal.querySelector("#mdl_tools").checked,
-        extra,
-      };
-      if (model?.id) await llm.updateModel(model.id, payload); else await llm.createModel(payload);
-      modal.remove();
-      refreshModels();
-    });
-  }
-
-  svcCol.querySelector("#svc_add").addEventListener("click", () => openServiceForm());
-  mdlCol.querySelector("#mdl_add").addEventListener("click", () => { if (currentService) openModelForm({ service_id: currentService }); });
-
-  window.addEventListener("llm:services:updated", refreshServices);
-  window.addEventListener("llm:models:updated", e => { if (e.detail?.service_id === currentService) refreshModels(); });
-
-  await refreshServices();
-  await refreshModels();
   return win;
 }
