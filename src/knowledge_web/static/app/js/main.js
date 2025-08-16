@@ -10,7 +10,7 @@ import { openSessionsWindow, loadChatHistory } from "./windows/sessions.js";
 
 import { openPersonaEditor } from "./windows/persona.js";
 import { openPromptEditor } from "./windows/prompt.js";
-import { openLLMSettings } from "./windows/llm.js";
+import { openLLMRegistry } from "./windows/window_llm_registry.js";
 import { initMenu } from "/static/ui/js/menu.js";
 
 async function openUISettings() {
@@ -75,7 +75,7 @@ initMenu((action) => {
   }
   if (action === "prompt-templates") openPromptEditor();
   if (action === "settings") openUISettings();
-  if (action === "llm-settings") openLLMSettings();
+  if (action === "llm-settings") openLLMRegistry();
 });
 
 // Header “User ▾”

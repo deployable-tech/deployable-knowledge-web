@@ -1,11 +1,12 @@
 // chat.js — streaming via HTMLElement placeholder (no framework changes)
 import { spawnWindow } from "/static/ui/js/framework.js";
-import { chat, chatStream } from "../sdk.js";
+import { chat, chatStream, llm } from "../sdk.js";
 import { Store } from "../store.js";
 import { md, htmlEscape } from "../util.js";
+import { attachLLMSelect } from "../components/llm_select.js";
 
 export function createChatWindow() {
-  return spawnWindow({
+  const win = spawnWindow({
     id: "win_chat",
     window_type: "window_chat",
     title: "Assistant Chat",
@@ -17,6 +18,7 @@ export function createChatWindow() {
     // NOTE: window_chat calls onSend(text, ctx)
     // ctx.append({ role, content }) accepts an HTMLElement for content.
     onSend: async (text, ctx) => {
+      const sel = await llm.getSelection();
       // 1) Create an empty assistant bubble immediately
       const placeholder = document.createElement("div");
       placeholder.className = "markdown"; // so your CSS/markdown renderer styles apply
@@ -35,7 +37,8 @@ export function createChatWindow() {
           session_id: (Store.sessionId || "") + "",
           persona: Store.persona || "",
           inactive: Store.inactiveList?.() || [],
-          model: Store.model || "",
+          model: sel.model_id || "",
+          service_id: sel.service_id || "",
         });
 
         let buf = "";
@@ -94,7 +97,8 @@ export function createChatWindow() {
             session_id: (Store.sessionId || "") + "",
             persona: Store.persona || "",
             inactive: Store.inactiveList?.() || [],
-            model: Store.model || "",
+            model: sel.model_id || "",
+            service_id: sel.service_id || "",
           });
           placeholder.innerHTML = md(res.response ?? "(no response)");
           autoscroll();
@@ -107,4 +111,10 @@ export function createChatWindow() {
       }
     },
   });
+  const header = win.querySelector(".title-bar, .window-titlebar, .title") || win;
+  const quick = document.createElement("div");
+  quick.style.marginLeft = "auto";
+  header.appendChild(quick);
+  attachLLMSelect(quick);
+  return win;
 }
