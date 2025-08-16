@@ -51,7 +51,10 @@ export async function handleSegmentAction(action, item) {
 export async function openSegmentViewer(id) {
   const seg = await getSegment(id);
   const winId = `seg_view_${id}`;
-  spawnWindow({
+  // ``spawnWindow`` historically returned nothing, but some versions may
+  // yield the created window element.  Support both behaviors so the
+  // viewer works regardless of framework implementation details.
+  let win = spawnWindow({
     id: winId,
     window_type: "window_generic",
     title: seg?.source ? `Segment • ${seg.source}` : "Segment",
@@ -62,20 +65,24 @@ export async function openSegmentViewer(id) {
       { type: "text", id: "seg_content", value: "" }
     ]
   });
-  const win = document.getElementById(winId);
-  const row = win?.querySelector("#seg_content")?.closest(".row");
-  if (row) {
+  if (!win || !(win instanceof HTMLElement)) {
+    win = document.getElementById(winId);
+  }
+  const placeholder = win?.querySelector("#seg_content");
+  if (placeholder) {
     const viewer = document.createElement("div");
     viewer.className = "segment-view";
     viewer.innerHTML = `
       <div class="kv">
-        <div><strong>ID:</strong> ${htmlEscape(seg.id||"")}</div>
-        <div><strong>Source:</strong> ${htmlEscape(seg.source||"")}</div>
+        <div><strong>ID:</strong> ${htmlEscape(seg.id || "")}</div>
+        <div><strong>Source:</strong> ${htmlEscape(seg.source || "")}</div>
         <div><strong>Index:</strong> ${htmlEscape(String(seg.segment_index ?? ""))}</div>
-        <div><strong>Priority:</strong> ${htmlEscape(seg.priority||"")}</div>
+        <div><strong>Priority:</strong> ${htmlEscape(seg.priority || "")}</div>
+        <div><strong>Page:</strong> ${htmlEscape(String(seg.page ?? ""))}</div>
         <div><strong>Chars:</strong> ${htmlEscape(String(seg.start_char ?? ""))}–${htmlEscape(String(seg.end_char ?? ""))}</div>
+        <div><strong>Metadata:</strong> ${htmlEscape(seg.metadata_tags || "")}</div>
       </div>
       <div class="prose">${md(seg.text || seg.preview || "(empty)")}</div>`;
-    row.replaceWith(viewer);
+    placeholder.replaceWith(viewer);
   }
 }
