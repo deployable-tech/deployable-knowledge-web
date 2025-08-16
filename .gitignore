@@ -28,5 +28,4 @@ env/
 __pycache__/
 *.py[cod]
 
-# Vendored or symlinked UI assets (managed by suite Makefile)
-src/knowledge_web/static/ui
+# UI framework sources are now committed
