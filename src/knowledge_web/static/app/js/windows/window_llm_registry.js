@@ -1,133 +1,120 @@
-import { spawnWindow } from "/static/ui/js/framework.js";
-import { createItemList, getComponent, bus } from "/static/ui/js/components.js";
-import { llm } from "../sdk.js";
-import { attachLLMSelect } from "../components/llm_select.js";
+import { spawnWindow } from '../../ui/framework/window.js';
+import { createForm } from '../../ui/components/form.js';
+import { createItemList } from '../../ui/components/list.js';
+import { withAsyncState } from '../../ui/components/async.js';
+import { showToast } from '../../ui/components/toast.js';
+import { llm } from '../sdk.js';
 
-export async function openLLMRegistry() {
-  if (document.getElementById("win_llm_registry")) return;
-  const win = spawnWindow({
-    id: "win_llm_registry",
-    window_type: "window_generic",
-    title: "LLM Services",
-    modal: true,
-    unique: true,
-    resizable: false,
-    width: 500,
-    height: 400,
-  });
-  const content = win.querySelector(".content");
-  if (!content) return win;
+export function openLLMRegistry(){
+  const win = spawnWindow({ id:'win_llm_registry', title:'LLM Services', resizable:true });
+  const content = win.getContentEl();
+  const formEl = document.createElement('div');
+  const listEl = document.createElement('div');
+  content.append(formEl, listEl);
 
-  const topSel = document.createElement("div");
-  topSel.id = "llm_active_select";
-  topSel.style.display = "flex";
-  topSel.style.gap = "4px";
-  topSel.style.justifyContent = "flex-end";
-  content.appendChild(topSel);
-  attachLLMSelect(topSel);
-
-  const list = createItemList("win_llm_registry", {
-    id: "svc_list",
-    item_template: {
-      elements: [
-        { type: "text", bind: "name" },
-        { type: "button", label: "Open", action: "open" },
-        { type: "button", label: "Edit", action: "edit" },
-        { type: "button", label: "Delete", action: "delete", variant: "danger" },
-      ],
-    },
-  });
-  content.appendChild(list);
-
-  const actions = document.createElement("div");
-  actions.className = "actions";
-  const add = document.createElement("button");
-  add.className = "btn";
-  add.textContent = "Add Service";
-  actions.appendChild(add);
-  content.appendChild(actions);
-
-  add.addEventListener("click", () => openServiceForm());
-
-  bus.addEventListener("ui:list-action", async (e) => {
-    const { winId, elementId, action, item } = e.detail || {};
-    if (winId !== "win_llm_registry" || elementId !== "svc_list") return;
-    if (action === "open") {
-      await llm.setSelection({ service_id: item.id, model_id: null });
-    } else if (action === "edit") {
-      openServiceForm(item);
-    } else if (action === "delete") {
-      if (confirm("Delete service?")) {
-        await llm.deleteService(item.id);
-        refreshServices();
+  let currentService = null;
+  const serviceForm = createForm({
+    target: formEl,
+    initial: { name:'', provider:'openai', base_url:'', auth_ref:'', timeout_sec:30, is_enabled:true, extra:{} },
+    fields: [
+      { type:'text', key:'name', label:'Name', required:true },
+      { type:'select', key:'provider', label:'Provider', options:['openai','anthropic','ollama','vllm','custom'] },
+      { type:'text', key:'base_url', label:'Base URL' },
+      { type:'text', key:'auth_ref', label:'Auth Ref' },
+      { type:'number', key:'timeout_sec', label:'Timeout (sec)' },
+      { type:'toggle', key:'is_enabled', label:'Enabled' },
+      { type:'json', key:'extra', label:'Extra (JSON)' }
+    ],
+    submitLabel:'Save',
+    onSubmit: async (vals) => {
+      try {
+        if(currentService && currentService.id){
+          await llm.updateService(currentService.id, vals);
+        } else {
+          await llm.createService(vals);
+        }
+        showToast({ type:'success', message:'Service saved' });
+        currentService = null;
+        serviceForm.setValues({ name:'', provider:'openai', base_url:'', auth_ref:'', timeout_sec:30, is_enabled:true, extra:{} });
+        loadServices();
+      } catch(err){
+        showToast({ type:'error', message:String(err) });
       }
     }
   });
 
-  async function refreshServices() {
-    const services = await llm.listServices();
-    getComponent("win_llm_registry", "svc_list").render(services);
-  }
+  const svcList = createItemList({
+    target:listEl,
+    columns:[{ key:'name', label:'Service' },{ key:'provider', label:'Provider' }],
+    actions:{
+      edit: (item)=>{ currentService = item; serviceForm.setValues(item); loadModels(item.id); },
+      delete: async (item)=>{ if(confirm('Delete service?')){ await llm.deleteService(item.id); loadServices(); }}
+    },
+    getRowId: s=>s.id
+  });
 
-  window.addEventListener("llm:services:updated", refreshServices);
-  await refreshServices();
+  const modelsTitle = document.createElement('h3');
+  modelsTitle.textContent = 'Models';
+  const modelsEl = document.createElement('div');
+  content.append(modelsTitle, modelsEl);
 
-  async function openServiceForm(service) {
-    const id = "modal_service";
-    if (document.getElementById(id)) return;
-    spawnWindow({
-      id,
-      window_type: "window_generic",
-      title: service ? "Edit Service" : "Add Service",
-      modal: true,
-      resizable: false,
-      unique: true,
-      Elements: [
-        { type: "input", id: "svc_name", label: "Name", value: service?.name || "" },
-        { type: "select", id: "svc_provider", label: "Provider", value: service?.provider || "openai", options: [
-            { value: "openai", label: "openai" },
-            { value: "anthropic", label: "anthropic" },
-            { value: "ollama", label: "ollama" },
-            { value: "vllm", label: "vllm" },
-            { value: "custom", label: "Custom" },
-        ] },
-        { type: "input", id: "svc_base", label: "Base URL", value: service?.base_url || "" },
-        { type: "input", id: "svc_auth", label: "Auth Ref", value: service?.auth_ref || "" },
-        { type: "number", id: "svc_timeout", label: "Timeout", value: service?.timeout_sec ?? "" },
-        { type: "checkbox", id: "svc_enabled", label: "Enabled", checked: service?.is_enabled !== false },
-        { type: "text_area", id: "svc_extra", label: "Extra", rows: 3, value: JSON.stringify(service?.extra || {}, null, 2) },
-      ]
-    });
-    const modal = document.getElementById(id);
-    const content = modal.querySelector(".content");
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const save = document.createElement("button");
-    save.className = "btn";
-    save.textContent = "Save";
-    actions.appendChild(save);
-    content.appendChild(actions);
-    save.addEventListener("click", async () => {
-      const name = modal.querySelector("#svc_name").value.trim();
-      const provider = modal.querySelector("#svc_provider").value.trim();
-      if (!name || !provider) { alert("name/provider required"); return; }
-      let extra = {};
-      const extraTxt = modal.querySelector("#svc_extra").value.trim();
-      if (extraTxt) { try { extra = JSON.parse(extraTxt); } catch { alert("Invalid JSON"); return; } }
-      const payload = {
-        name,
-        provider,
-        base_url: modal.querySelector("#svc_base").value.trim() || null,
-        auth_ref: modal.querySelector("#svc_auth").value.trim() || null,
-        timeout_sec: Number(modal.querySelector("#svc_timeout").value) || null,
-        is_enabled: modal.querySelector("#svc_enabled").checked,
-        extra,
-      };
-      if (service) await llm.updateService(service.id, payload); else await llm.createService(payload);
-      modal.remove();
-      refreshServices();
+  const modelList = createItemList({
+    target: modelsEl,
+    columns:[{ key:'name', label:'Model' }, { key:'engine', label:'Engine' }],
+    actions:{
+      rename: (m)=> openModelModal('Rename Model', { ...m }, async vals => { await llm.updateModel(m.id, vals); loadModels(m.service_id); }),
+      delete: async (m)=>{ if(confirm('Delete model?')){ await llm.deleteModel(m.id); loadModels(m.service_id); }}
+    },
+    getRowId: m=>m.id
+  });
+
+  const addModelBtn = document.createElement('button');
+  addModelBtn.textContent = 'Add Model';
+  addModelBtn.addEventListener('click', () => {
+    if(!currentService){ showToast({ type:'warn', message:'Select a service first' }); return; }
+    openModelModal('Add Model', { service_id: currentService.id }, async vals => { await llm.createModel({ ...vals, service_id: currentService.id }); loadModels(currentService.id); });
+  });
+  modelsEl.prepend(addModelBtn);
+
+  function openModelModal(title, initial, onSave){
+    win.openModal({
+      title,
+      content(modal){
+        const formDiv = modal.getContentEl();
+        const frm = createForm({
+          target: formDiv,
+          initial: { name: initial.name || '', engine: initial.engine || '', extra: initial.extra || {} },
+          fields:[
+            { type:'text', key:'name', label:'Name', required:true },
+            { type:'text', key:'engine', label:'Engine', required:true },
+            { type:'json', key:'extra', label:'Params (JSON)' }
+          ],
+          submitLabel:'Save',
+          onSubmit: async (vals) => {
+            try { await onSave(vals); showToast({ type:'success', message:'Model saved' }); modal.close(); }
+            catch(err){ showToast({ type:'error', message:String(err) }); }
+          }
+        });
+      }
     });
   }
 
+  function loadServices(){
+    withAsyncState(llm.listServices(), {
+      onLoading: ()=>svcList.setLoading && svcList.setLoading(true),
+      onError: err=>{ svcList.setLoading && svcList.setLoading(false); svcList.setError && svcList.setError('Error'); showToast({ type:'error', message:String(err) }); },
+      onData: data=>{ svcList.setLoading && svcList.setLoading(false); svcList.setItems(data); if(data.length===0) svcList.setError && svcList.setError('No services'); }
+    });
+  }
+
+  function loadModels(serviceId){
+    withAsyncState(llm.listModels(serviceId), {
+      onLoading: ()=>modelList.setLoading && modelList.setLoading(true),
+      onError: err=>{ modelList.setLoading && modelList.setLoading(false); modelList.setError && modelList.setError('Error'); showToast({ type:'error', message:String(err) }); },
+      onData: data=>{ modelList.setLoading && modelList.setLoading(false); modelList.setItems(data); if(data.length===0) modelList.setError && modelList.setError('No models'); }
+    });
+  }
+
+  loadServices();
   return win;
 }
