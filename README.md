@@ -1,18 +1,11 @@
 # deployable-knowledge-web
 
-## LLM Services & Models
+A barebones web application that uses the external `deployable-ui` framework. Static assets for the app live under `static/app` while the UI framework is mounted from the `deployable-ui` submodule at `static/ui`.
 
-The web UI includes a manager for Large Language Model services and models. Open it from
-**Menu ▾ → LLM Settings** or press the registered shortcut (Ctrl+M if supported).
+## Development
 
-From the manager you can:
+```bash
+make dev
+```
 
-- Create, edit, or delete LLM services and models.
-- Enable/disable services.
-- Choose the active service/model pair via the selector in the top-right.
-
-The current selection is stored in `localStorage` under `llm.selection`. A lightweight
-mock adapter (enabled by default) persists services and models in `localStorage` as
-`llm.services` and `llm.models`. To disable the mock layer set `localStorage['llm.mock'] = 'false'` and reload.
-
-Chat requests automatically include the active `service_id` and `model_id`.
+The development server runs at `http://127.0.0.1:8002/` and serves the main page from `templates/index.html`.

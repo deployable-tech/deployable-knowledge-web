@@ -4,7 +4,7 @@ PYTHON    ?= python3
 PIP       := $(VENV_NAME)/bin/pip
 PY        := $(VENV_NAME)/bin/python
 UVICORN   := $(VENV_NAME)/bin/uvicorn
-APP_MODULE = demo.main:app
+APP_MODULE = knowledge_web.main:app
 
 # Build the venv only if it doesn't exist
 $(VENV_NAME)/bin/activate:
@@ -16,9 +16,9 @@ venv: $(VENV_NAME)/bin/activate
 install: venv requirements.txt
 	$(PIP) install -r requirements.txt
 
-# Serve the demo
+# Serve the application
 dev: install
-	$(UVICORN) $(APP_MODULE) --host 127.0.0.1 --port 8002 --reload
+        $(UVICORN) $(APP_MODULE) --host 127.0.0.1 --port 8002 --reload
 
 # Basic template/static link check
 smoke:
