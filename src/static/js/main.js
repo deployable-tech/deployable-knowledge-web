@@ -1,16 +1,24 @@
-import { initFramework, spawnWindow } from "../../submodules/deployable-ui/src/ui/js/framework.js";
-import { DKClient } from "./sdk.js";
+import { initFramework, spawnWindow } from "/static/ui/js/framework.js";
+import { DKClient, ensureChatSessionId } from "/static/js/sdk.js";
+import { initDocumentsWindow } from "./windows/documents.js";
+import { initSegmentsWindow } from "./windows/segments.js";
+import { initLLMServicesWindows } from "./windows/llm_services.js";
 
+// ---- SDK SETUP ----
+const API_BASE = `${location.protocol}//${location.hostname}:8000`;
+const sdk = new DKClient({ baseUrl: API_BASE });
+
+// ---- COOKIE HELPERS ----
 function getCookie(name) {
   const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
   return m ? decodeURIComponent(m[2]) : null;
 }
-
 function setCookie(name, value, days = 365) {
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
 }
 
+// ---- SESSION ENSURE ----
 async function ensureSessionId(sdk) {
   let sid = getCookie('dk_session_id');
   if (!sid) {
@@ -20,15 +28,22 @@ async function ensureSessionId(sdk) {
   }
   return sid;
 }
-
-window.addEventListener("DOMContentLoaded", async () => {
-  initFramework();
-
-  const sdk = new DKClient({ baseUrl: "" });
+  // now ensure chat session
   const sessionId = await ensureSessionId(sdk);
   let persona = "";
 
-  // Chat window
+
+// ---- APP INIT ----
+window.addEventListener("DOMContentLoaded", async () => {
+  initFramework();
+  // ... after session/persona init
+
+  initDocumentsWindow({ sdk, sessionId, persona, spawnWindow });
+  initSegmentsWindow({ sdk, sessionId, persona, spawnWindow });
+  // 🔑 make sure user session cookie exists before anything else
+  await sdk.auth.beginUser();
+
+  // ... 👇 all your existing spawnWindow logic remains unchanged ...
   spawnWindow({
     id: "win_chat",
     title: "Chat",
@@ -39,7 +54,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       return { role: "assistant", content: out.response };
     }
   });
-
+  
   // Chat history window
   spawnWindow({
     id: "win_history",
@@ -56,39 +71,39 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   refreshSessions();
 
-  // Document library window
-  spawnWindow({
-    id: "win_docs",
-    title: "Document Library",
-    col: "left",
-    window_type: "window_generic",
-    Elements: [
-      { type: "file_upload", id: "doc_upload", label: "Upload", multiple: true,
-        onUpload: async (files) => { await sdk.ingest.upload(files); refreshDocs(); } },
-      { type: "list_view", id: "doc_list", items: [], template: { title: d => d.title, subtitle: d => `segments: ${d.segments}` } }
-    ]
-  });
-  async function refreshDocs() {
-    const docs = await sdk.documents.list();
-    document.getElementById("doc_list").update({ items: docs });
-  }
-  refreshDocs();
+  // // Document library window
+  // spawnWindow({
+  //   id: "win_docs",
+  //   title: "Document Library",
+  //   col: "left",
+  //   window_type: "window_generic",
+  //   Elements: [
+  //     { type: "file_upload", id: "doc_upload", label: "Upload", multiple: true,
+  //       onUpload: async (files) => { await sdk.ingest.upload(files); refreshDocs(); } },
+  //     { type: "list_view", id: "doc_list", items: [], template: { title: d => d.title, subtitle: d => `segments: ${d.segments}` } }
+  //   ]
+  // });
+  // async function refreshDocs() {
+  //   const docs = await sdk.documents.list();
+  //   document.getElementById("doc_list").update({ items: docs });
+  // }
+  // refreshDocs();
 
-  // DB Segments window
-  spawnWindow({
-    id: "win_segments",
-    title: "DB Segments",
-    col: "left",
-    window_type: "window_generic",
-    Elements: [
-      { type: "list_view", id: "seg_list", items: [], template: { title: s => s.id, subtitle: s => s.source } }
-    ]
-  });
-  async function refreshSegments() {
-    const segs = await sdk.segments.list();
-    document.getElementById("seg_list").update({ items: segs });
-  }
-  refreshSegments();
+  // // DB Segments window
+  // spawnWindow({
+  //   id: "win_segments",
+  //   title: "DB Segments",
+  //   col: "left",
+  //   window_type: "window_generic",
+  //   Elements: [
+  //     { type: "list_view", id: "seg_list", items: [], template: { title: s => s.id, subtitle: s => s.source } }
+  //   ]
+  // });
+  // async function refreshSegments() {
+  //   const segs = await sdk.segments.list();
+  //   document.getElementById("seg_list").update({ items: segs });
+  // }
+  // refreshSegments();
 
   // Semantic search window
   spawnWindow({
@@ -152,59 +167,5 @@ window.addEventListener("DOMContentLoaded", async () => {
       refreshTemplates();
     }
   });
-
-  // LLM settings window
-  spawnWindow({
-    id: "win_llm_settings",
-    title: "LLM Settings",
-    col: "right",
-    window_type: "window_generic",
-    Elements: [
-      { type: "text_field", id: "llm_service", label: "Service" },
-      { type: "text_field", id: "llm_model", label: "Model" },
-      { type: "submit_button", id: "llm_save", text: "Save" }
-    ]
-  });
-  async function loadSelection() {
-    const sel = await sdk.llm.getSelection();
-    document.getElementById("llm_service").value = sel.service_id || "";
-    document.getElementById("llm_model").value = sel.model_id || "";
-  }
-  loadSelection();
-  document.getElementById("llm_save").addEventListener("click", async () => {
-    const service_id = document.getElementById("llm_service").value;
-    const model_id = document.getElementById("llm_model").value;
-    await sdk.llm.updateSelection({ service_id, model_id });
-  });
-
-  // LLM service management window
-  spawnWindow({
-    id: "win_llm_manage",
-    title: "LLM Services",
-    col: "left",
-    window_type: "window_generic",
-    Elements: [
-      { type: "text_field", id: "svc_name", label: "Name" },
-      { type: "text_field", id: "svc_type", label: "Type" },
-      { type: "text_field", id: "svc_base", label: "Base URL" },
-      { type: "text_field", id: "svc_key", label: "API Key" },
-      { type: "submit_button", id: "svc_create", text: "Create" },
-      { type: "list_view", id: "svc_list", items: [], template: { title: s => s.name, subtitle: s => s.type } }
-    ]
-  });
-  async function refreshServices() {
-    const svcs = await sdk.llm.listServices();
-    document.getElementById("svc_list").update({ items: svcs });
-  }
-  refreshServices();
-  document.getElementById("svc_create").addEventListener("click", async () => {
-    const svc = {
-      name: document.getElementById("svc_name").value,
-      type: document.getElementById("svc_type").value,
-      base_url: document.getElementById("svc_base").value,
-      api_key: document.getElementById("svc_key").value
-    };
-    await sdk.llm.createService(svc);
-    refreshServices();
-  });
+initLLMServicesWindows({ sdk, spawnWindow });
 });

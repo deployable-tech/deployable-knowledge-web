@@ -1,37 +1,60 @@
 /**
- * Deployable Knowledge SDK
- * Minimal, dependency-free client for the app API.
+ * Deployable Knowledge SDK (browser-only, no Node)
+ * - Binds fetch (fixes "Illegal invocation").
+ * - Adds auth.beginUser() to prime the user session cookie via /begin.
  *
- * Usage:
- *   const sdk = new DKClient({ baseUrl: "http://localhost:8000" });
- *   const { session_id } = await sdk.getOrCreateSession();
- *   const res = await sdk.chat.send({ sessionId: session_id, message: "Hello" });
+ * Typical usage:
+ *   const API_BASE = `${location.protocol}//${location.hostname}:8000`; // match page host!
+ *   const sdk = new DKClient({ baseUrl: API_BASE });
+ *   await sdk.auth.beginUser();              // set user session cookie
+ *   const { session_id } = await sdk.sessions.ensure(); // now works
  */
 
 export class DKClient {
   /**
    * @param {Object} opts
    * @param {string} opts.baseUrl - e.g., "http://localhost:8000"
-   * @param {string} [opts.csrf]   - CSRF token (optional)
+   * @param {string} [opts.csrf]  - CSRF token (optional)
    * @param {Function} [opts.fetch] - custom fetch impl (optional)
    */
   constructor({ baseUrl, csrf, fetch: fetchImpl } = {}) {
     if (!baseUrl) throw new Error("DKClient: baseUrl is required");
     this.base = baseUrl.replace(/\/+$/, "");
     this.csrf = csrf || null;
-    this._fetch = fetchImpl || fetch;
 
-    // Namespaces
+    // Bind fetch to its global owner (avoids "Illegal invocation")
+    const root =
+      (typeof window !== "undefined" && window) ||
+      (typeof self !== "undefined" && self) ||
+      globalThis;
+    const f = fetchImpl || root.fetch;
+    this._fetch = (...args) => f.apply(root, args);
+
+    // ----- NEW: user-session helpers -----
+    this.auth = {
+      /**
+       * Prime the USER session cookie by calling /begin without CORS.
+       * Works even if CORS isn't configured yet.
+       * Call this once before using API endpoints that rely on the user session.
+       */
+      beginUser: async () => {
+        await this._beacon("/begin"); // set cookies via same-site navigation request
+        await this._sleep(120);       // tiny settle time for cookie write
+        return true;
+      }
+    };
+
+    // ----- API wrappers -----
     this.sessions = {
       list:    () => this._json("GET", `/sessions`),
       get:     (sessionId) => this._json("GET", `/sessions/${encodeURIComponent(sessionId)}`),
       ensure:  () => this._json("GET", `/session`),       // returns { session_id }
       create:  () => this._json("POST", `/session`),      // returns { session_id }
-      getUser: () => this._json("GET", `/user`)           // returns { user }
+      getUser: () => this._json("GET", `/user`)
     };
 
     this.documents = {
-      list: () => this._json("GET", `/documents`)         // [{title,id,segments}]
+      list: () => this._json("GET", `/documents`)
     };
 
     this.segments = {
@@ -41,17 +64,6 @@ export class DKClient {
     };
 
     this.chat = {
-      /**
-       * Non-streaming chat turn (returns HTML in .response)
-       * @param {Object} p
-       * @param {string} p.sessionId
-       * @param {string} p.message
-       * @param {string} [p.persona=""]
-       * @param {string} [p.templateId="rag_chat"]
-       * @param {number} [p.topK=8]
-       * @param {string[]|null} [p.inactive]
-       * @param {AbortSignal} [p.signal]
-       */
       send: async (p) => {
         const body = this._form({
           message: p.message,
@@ -64,22 +76,6 @@ export class DKClient {
         return this._json("POST", `/chat`, { body, signal: p?.signal, form: true });
       },
 
-      /**
-       * Streaming chat via SSE (POST + text/event-stream). Parses events & tokens.
-       * @param {Object} p
-       * @param {string} p.sessionId
-       * @param {string} p.message
-       * @param {string} [p.persona=""]
-       * @param {string} [p.templateId="rag_chat"]
-       * @param {number} [p.topK=8]
-       * @param {string[]} [p.inactive]
-       * @param {(meta:object)=>void} [p.onMeta]
-       * @param {(token:string)=>void} [p.onToken]
-       * @param {(final:{text:string,sources?:any,usage?:any})=>void} [p.onDone]
-       * @param {(err:any)=>void} [p.onError]
-       * @param {AbortSignal} [p.signal]
-       * @returns {Promise<{text:string,sources?:any,usage?:any,meta?:any}>}
-       */
       stream: async (p) => {
         const url = `/chat${this._qs({ stream: true })}`;
         const body = this._form({
@@ -93,10 +89,6 @@ export class DKClient {
         return this._postSSE(url, body, p);
       },
 
-      /**
-       * Same as stream() but calls /chat-stream (always streaming).
-       * @param {Parameters<DKClient['chat']['stream']>[0]} p
-       */
       streamAlways: async (p) => {
         const url = `/chat-stream`;
         const body = this._form({
@@ -112,64 +104,37 @@ export class DKClient {
     };
 
     this.search = {
-      /**
-       * @param {Object} p
-       * @param {string} p.q
-       * @param {number} [p.topK=5]
-       * @param {string[]} [p.inactive]
-       */
       run: ({ q, topK = 5, inactive } = {}) =>
         this._json("GET", `/search${this._qs({ q, top_k: topK, inactive: inactive ? JSON.stringify(inactive) : undefined })}`)
     };
 
     this.ingest = {
-      /**
-       * Upload & embed now.
-       * @param {File[]|FileList} files
-       */
       upload: (files) => {
         const fd = new FormData();
         for (const f of Array.from(files)) fd.append("files", f);
         return this._json("POST", `/upload`, { body: fd, multipart: true });
       },
-      /**
-       * Remove a document & its vectors.
-       * @param {string} source (filename)
-       */
       remove: (source) => {
         const body = this._form({ source });
         return this._json("POST", `/remove`, { body, form: true });
       },
-      /**
-       * Parse PDFs to txt then background-embed directory.
-       */
       ingestAll: () => this._json("POST", `/ingest`),
-      /**
-       * Clear entire vector collection.
-       */
-      clearDb: () => this._json("POST", `/clear_db`)
+      clearDb:   () => this._json("POST", `/clear_db`)
     };
 
-    // /api/llm/*
     this.llm = {
-      // Services
       listServices:   () => this._json("GET", `/api/llm/services`),
       createService:  (svc) => this._json("POST", `/api/llm/services`, { body: JSON.stringify(svc), json: true }),
       updateService:  (sid, patch) => this._json("PUT", `/api/llm/services/${encodeURIComponent(sid)}`, { body: JSON.stringify(patch), json: true }),
       deleteService:  (sid) => this._json("DELETE", `/api/llm/services/${encodeURIComponent(sid)}`),
-
-      // Models
       listModels:     (service_id) => this._json("GET", `/api/llm/models${this._qs({ service_id })}`),
       createModel:    (m) => this._json("POST", `/api/llm/models`, { body: JSON.stringify(m), json: true }),
       updateModel:    (mid, patch) => this._json("PUT", `/api/llm/models/${encodeURIComponent(mid)}`, { body: JSON.stringify(patch), json: true }),
       deleteModel:    (mid) => this._json("DELETE", `/api/llm/models/${encodeURIComponent(mid)}`),
-
-      // Per-user selection
       getSelection:   () => this._json("GET", `/api/llm/selection`),
       updateSelection:(sel) => this._json("PUT", `/api/llm/selection`, { body: JSON.stringify(sel), json: true })
     };
 
-    // /api settings + prompt templates
     this.settings = {
       get:   (userId) => this._json("GET", `/api/settings/${encodeURIComponent(userId)}`),
       patch: (userId, patch) => this._json("PATCH", `/api/settings/${encodeURIComponent(userId)}`, { body: JSON.stringify(patch), json: true })
@@ -182,7 +147,7 @@ export class DKClient {
     };
   }
 
-  /* -------------------- internal helpers -------------------- */
+  /* -------------------- internals -------------------- */
 
   _qs(obj = {}) {
     const pairs = Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== "");
@@ -205,21 +170,19 @@ export class DKClient {
     if (this.csrf) headers["X-CSRFToken"] = this.csrf;
     if (json) headers["Content-Type"] = "application/json";
     else if (form) headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
-    // multipart -> let browser set content-type boundary
 
     const res = await this._fetch(this.base + path, {
       method,
       headers,
       body,
       signal,
-      credentials: "include"
+      credentials: "include" // send/receive cookies
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new DKHttpError(res.status, res.statusText, text);
     }
-    // Some endpoints might return empty body
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
       const text = await res.text().catch(() => "");
@@ -230,8 +193,6 @@ export class DKClient {
 
   /**
    * POST with text/event-stream response; parse SSE manually.
-   * Supports callbacks and returns a final object on completion.
-   * @private
    */
   async _postSSE(path, body, { onMeta, onToken, onDone, onError, signal } = {}) {
     const headers = { Accept: "text/event-stream" };
@@ -264,7 +225,6 @@ export class DKClient {
     const flush = (chunk) => {
       buffer += chunk;
       let idx;
-      // Split on double-newline (event separators). Support both \n\n and \r\n\r\n
       while ((idx = buffer.search(/\r?\n\r?\n/)) !== -1) {
         const raw = buffer.slice(0, idx);
         buffer = buffer.slice(idx + (buffer[idx] === "\r" ? 4 : 2));
@@ -276,17 +236,14 @@ export class DKClient {
           try { finalMeta = JSON.parse(data); } catch { finalMeta = data; }
           onMeta?.(finalMeta);
         } else if (event === "delta") {
-          const token = data;
-          finalText += token;
-          onToken?.(token);
+          finalText += data;
+          onToken?.(data);
         } else if (event === "done") {
           try {
             const obj = JSON.parse(data);
             finalSources = obj?.sources;
             finalUsage = obj?.usage;
-          } catch {
-            // ignore
-          }
+          } catch {}
           onDone?.({ text: finalText, sources: finalSources, usage: finalUsage, meta: finalMeta });
         } else if (event === "error") {
           let errData = data;
@@ -303,7 +260,6 @@ export class DKClient {
         if (done) break;
         flush(decoder.decode(value, { stream: true }));
       }
-      // leftover
       if (buffer) flush(buffer);
       return { text: finalText, sources: finalSources, usage: finalUsage, meta: finalMeta };
     } catch (e) {
@@ -313,25 +269,31 @@ export class DKClient {
   }
 
   _parseSSE(block) {
-    // block is like:
-    // event: delta\n
-    // data: token chunk...\n
-    // id: 123\n
-    // <blank line>
     const lines = block.split(/\r?\n/).filter(Boolean);
     let event = "message";
     let data = "";
     for (const line of lines) {
-      if (line.startsWith("event:")) {
-        event = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        data += (data ? "\n" : "") + line.slice(5).trim();
-      }
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data += (data ? "\n" : "") + line.slice(5).trim();
     }
     if (!lines.length) return null;
     return { event, data };
   }
+
+  // --- utilities ---
+
+  _beacon(path) {
+    // Fire-and-forget GET that still processes Set-Cookie.
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = img.onerror = () => resolve(true);
+      img.src = this.base + path + (path.includes("?") ? "&" : "?") + "_ts=" + Date.now();
+    });
+  }
+
+  _sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 }
+
 
 export class DKHttpError extends Error {
   constructor(status, statusText, bodyText) {
@@ -343,56 +305,11 @@ export class DKHttpError extends Error {
   }
 }
 
-/* -------------------- Optional convenience wrapper -------------------- */
-
 /**
- * Ensures existence of a chat session and returns its id.
- * Uses existing cookie-based session if present.
- * @param {DKClient} sdk
+ * Utility helper: ensure there’s an active chat session id.
+ * Returns { session_id }
  */
 export async function ensureChatSessionId(sdk) {
   const { session_id } = await sdk.sessions.ensure();
   return session_id;
 }
-
-/* -------------------- Example usage (remove or keep) --------------------
-
-import { DKClient, ensureChatSessionId } from "./sdk.js";
-
-const sdk = new DKClient({ baseUrl: "http://127.0.0.1:8000" });
-
-(async () => {
-  const sessionId = await ensureChatSessionId(sdk);
-
-  // Non-stream chat
-  const out = await sdk.chat.send({ sessionId, message: "Hello world" });
-  console.log("HTML response:", out.response);
-
-  // Stream chat
-  await sdk.chat.stream({
-    sessionId,
-    message: "Stream this please.",
-    onMeta: (m) => console.log("meta:", m),
-    onToken: (t) => { /* append to UI */ },
-    onDone: (r) => console.log("final:", r.text),
-    onError: (e) => console.error("stream error:", e)
-  });
-
-  // Search
-  const search = await sdk.search.run({ q: "router setup", topK: 8, inactive: ["DocA.pdf"] });
-  console.log(search.results);
-
-  // Upload files
-  // const inp = document.querySelector('input[type="file"]');
-  // const up = await sdk.ingest.upload(inp.files);
-
-  // LLM config
-  // const services = await sdk.llm.listServices();
-  // await sdk.llm.createService({ name:"openai", type:"openai", base_url:"...", api_key:"..." });
-
-  // Settings & templates
-  // const s = await sdk.settings.get("user");
-  // await sdk.templates.put("rag_chat", { id:"rag_chat", name:"RAG Chat", user_format:"{message}", system:"You are helpful." });
-})();
-
--------------------------------------------------------------------------- */

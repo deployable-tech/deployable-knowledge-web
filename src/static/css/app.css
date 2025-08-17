@@ -1,0 +1,60 @@
+/* Bridge the plain item-list to framework theme */
+.item-list {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: hsl(var(--h) var(--sat) var(--l-panel));
+  box-shadow: var(--shadow);
+}
+
+/* Table + header */
+.item-list table { width: 100%; border-collapse: collapse; }
+.item-list thead th {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--h) var(--sat) calc(var(--l-panel) + 2%)),
+    hsl(var(--h) var(--sat) var(--l-panel))
+  );
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+/* Rows */
+.item-list tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.item-list tbody tr:hover td {
+  background: hsl(var(--h) var(--sat) calc(var(--l-panel) + 2%));
+}
+
+/* Actions */
+.item-list .actions { display: flex; gap: 8px; justify-content: flex-end; }
+.item-list button {
+  appearance: none;
+  border: 1px solid hsl(var(--h) var(--sat) calc(var(--l-border) + 0%));
+  background: hsl(var(--h) var(--sat) var(--l-panel));
+  color: var(--text);
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.item-list button:hover {
+  border-color: hsl(var(--h) var(--sat) calc(var(--l-border) + 8%));
+}
+
+/* Make delete feel 'danger' like framework buttons */
+.item-list button[data-action="del"],
+.item-list button[data-action="delete"] {
+  border-color: hsl(0 60% 28%);
+  background: hsl(0 40% 12%);
+}
+.item-list button[data-action="del"]:hover,
+.item-list button[data-action="delete"]:hover {
+  border-color: hsl(0 60% 35%);
+  color: hsl(0 90% 85%);
+}

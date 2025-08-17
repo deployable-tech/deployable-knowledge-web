@@ -1,0 +1,203 @@
+// applications/windows/llm_services.js
+import { createItemList } from "/static/ui/js/components/list.js";
+import { closeWindow } from "/static/ui/js/window.js";
+
+let svcTable;
+let currentSelection = null; // { service_id, model_id }
+let editingId = null;
+
+// helpers for sdk.llm method names
+const llmApi = (sdk) => ({
+  list:         () => sdk.llm.listServices(),
+  getSelection: () => sdk.llm.getSelection(),
+  create:       (p)   => sdk.llm.createService(p),
+  update:       (id,p)=> sdk.llm.updateService ? sdk.llm.updateService(id,p) : sdk.llm.putService(id,p),
+  remove:       (id)  => sdk.llm.deleteService ? sdk.llm.deleteService(id) : sdk.llm.removeService(id),
+  setActive:    ({ service_id, model_id }) => sdk.llm.updateSelection({ service_id, model_id }),
+});
+
+export function initLLMServicesWindows({ sdk, spawnWindow }) {
+  if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
+
+  // ===== Window A: Services List =====
+  spawnWindow({
+    id: "win_llm_services",
+    title: "LLM Services",
+    col: "left",
+    window_type: "window_generic",
+    Elements: [
+      { type: "submit_button", id: "svc_new",     text: "New Service" },
+      { type: "submit_button", id: "svc_refresh", text: "Refresh" },
+      { type: "text", id: "svc_slot", showLabel: false, html: '<div id="svc_table_slot"></div>' },
+    ],
+  });
+
+  const slot = document.getElementById("svc_table_slot");
+  slot.classList.add("list");
+
+  svcTable = createItemList({
+    target: slot,
+    columns: [
+      { key: "name",       label: "Name" },
+      { key: "provider",   label: "Provider" },
+      { key: "status",     label: "Status" },
+      { key: "active",     label: "Active" },
+      { key: "created_at", label: "Created" },
+    ],
+    items: [],
+    actions: {
+      select: async (row) => {
+        const api = llmApi(sdk);
+        const model_id = currentSelection?.model_id ?? null;
+        await api.setActive({ service_id: row.id, model_id });
+        await refreshServices();
+      },
+      edit: (row) => openEditorModal(row),
+      del: async (row) => {
+        const api = llmApi(sdk);
+        try { await api.remove(row.id); }
+        catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
+        finally { await refreshServices(); }
+      },
+      toggleEnabled: async (row) => {
+        const api = llmApi(sdk);
+        try { await api.update(row.id, { is_enabled: !row.is_enabled }); }
+        catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
+        finally { await refreshServices(); }
+      },
+    },
+    getRowId: (row) => row.id,
+  });
+
+  document.getElementById("svc_refresh")?.addEventListener("click", () => refreshServices());
+  document.getElementById("svc_new")?.addEventListener("click", () => openEditorModal(null));
+
+  const MODAL_WIN_TYPE = (window.UI?.windowTypes?.includes?.("window_modal")) ? "window_modal" : "window_generic";
+
+  function openEditorModal(service) {
+    editingId = service?.id || null;
+    closeWindow("modal_llm_editor");
+
+    spawnWindow({
+      id: "modal_llm_editor",
+      title: editingId ? "Edit LLM Service" : "New LLM Service",
+      window_type: MODAL_WIN_TYPE,
+      col: "right",
+      modal: true,
+      Elements: [
+        { type: "text_field",  id: "svc_id",       label: "ID (read-only)", placeholder: "(auto)", disabled: true },
+        { type: "text_field",  id: "svc_name",     label: "Name",           placeholder: "e.g., openai-prod" },
+        { type: "text_field",  id: "svc_provider", label: "Provider",       placeholder: "openai | ollama | azure | ..." },
+        { type: "text_field",  id: "svc_base",     label: "Base URL",       placeholder: "optional" },
+        { type: "text_field",  id: "svc_auth",     label: "Auth Ref",       placeholder: "optional" },
+        { type: "text_field",  id: "svc_timeout",  label: "Timeout (sec)",  placeholder: "e.g., 60" },
+        { type: "text_area",   id: "svc_extra",    label: "Extra (JSON)",   placeholder: "{ \"api_version\": \"...\" }" },
+        { type: "submit_button", id: "svc_save",   text: "Save" },
+        { type: "submit_button", id: "svc_cancel", text: "Cancel" },
+      ],
+    });
+
+    fillEditor(service || null);
+
+    const saveBtn = document.getElementById("svc_save");
+    const cancelBtn = document.getElementById("svc_cancel");
+
+    saveBtn?.addEventListener("click", async () => {
+      const api = llmApi(sdk);
+      const payload = gatherEditorPayload();
+      if (!payload) return;
+      if (!payload.name || !payload.provider) {
+        alert("Name and Provider are required.");
+        return;
+      }
+
+      try {
+        if (editingId) {
+          await api.update(editingId, payload);
+        } else {
+          await api.create(payload);
+        }
+      } catch (e) {
+        alert("Save failed: " + (e.bodyText || e.message));
+      } finally {
+        closeWindow("modal_llm_editor");
+        await refreshServices();
+      }
+    });
+
+    cancelBtn?.addEventListener("click", () => closeWindow("modal_llm_editor"));
+  }
+
+  async function refreshServices() {
+    const api = llmApi(sdk);
+    const [services, selection] = await Promise.all([
+      api.list(),
+      api.getSelection().catch(() => null),
+    ]);
+    currentSelection = selection || null;
+
+    const rows = services.map((s) => ({
+      ...s,
+      status: s.is_enabled ? "enabled" : "disabled",
+      active: selection?.service_id === s.id ? "✓" : "",
+      created_at: s.created_at ? fmtDate(s.created_at) : "",
+    }));
+
+    svcTable.setItems(rows);
+    if (editingId) {
+      const fresh = rows.find(r => r.id === editingId);
+      if (fresh) fillEditor(fresh);
+    }
+  }
+
+  function fillEditor(svc) {
+    setValue("svc_id",       svc?.id || "");
+    setValue("svc_name",     svc?.name || "");
+    setValue("svc_provider", svc?.provider || "");
+    setValue("svc_base",     svc?.config?.base_url || "");
+    setValue("svc_auth",     svc?.config?.auth_ref || "");
+    setValue("svc_timeout",  svc?.config?.timeout_sec != null ? String(svc.config.timeout_sec) : "");
+    setValue("svc_extra",    prettyJSON(svc?.config?.extra) || "");
+  }
+
+  function gatherEditorPayload() {
+    const name        = getValue("svc_name").trim();
+    const provider    = getValue("svc_provider").trim();
+    const base_url    = orNull(getValue("svc_base").trim());
+    const auth_ref    = orNull(getValue("svc_auth").trim());
+    const tval        = getValue("svc_timeout").trim();
+    const timeout_sec = tval ? Number(tval) : null;
+    const extraRaw    = getValue("svc_extra").trim();
+
+    let extra = {};
+    if (extraRaw) {
+      try { extra = JSON.parse(extraRaw); }
+      catch (e) {
+        alert("Extra must be valid JSON.");
+        return null;
+      }
+    }
+
+    return {
+      name,
+      provider,
+      config: {
+        base_url,
+        auth_ref,
+        timeout_sec,
+        extra
+      }
+    };
+  }
+
+  function getValue(id)   { const el = document.getElementById(id); return el ? el.value : ""; }
+  function setValue(id,v) { const el = document.getElementById(id); if (el) el.value = v; }
+  function orNull(v)      { return v === "" ? null : v; }
+  function prettyJSON(obj){
+    try { return obj && Object.keys(obj).length ? JSON.stringify(obj, null, 2) : ""; }
+    catch { return ""; }
+  }
+  function fmtDate(iso)   { try { return new Date(iso).toLocaleString(); } catch { return iso; } }
+
+  refreshServices();
+}

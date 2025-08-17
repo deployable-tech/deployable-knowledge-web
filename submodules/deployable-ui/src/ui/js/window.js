@@ -21,6 +21,18 @@ registerWindowType("window_text_editor", renderTextEditor);
 registerWindowType("window_chat", renderChat);
 registerWindowType("window_theme_editor", renderThemeEditor);
 
+export function closeWindow(winOrId) {
+  const win = typeof winOrId === "string" ? document.getElementById(winOrId) : winOrId;
+  if (!win) return;
+  // deregister first so any component cleanup can touch DOM while it still exists
+  try { deregisterComponent(win.dataset.id); } catch {}
+  // remove modal wrapper if present; otherwise remove the window
+  const wrap = win.closest(".modal-wrap");
+  if (wrap) wrap.remove();
+  else win.remove();
+}
+
+
 export function createMiniWindowFromConfig(config) {
   const winId = (() => {
     let id = config.id || `mw-${crypto.randomUUID()}`;
@@ -58,6 +70,9 @@ export function createMiniWindowFromConfig(config) {
     el("div", { class: "title" }, [config.title || "Untitled"]),
     actions
   ]);
+
+
+
 
   const contentInner = el("div", { class: "content-inner" });
   const content = el("div", { class: "content" }, [contentInner]);
