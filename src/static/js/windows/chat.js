@@ -8,14 +8,33 @@ export function initChatWindow({ sdk, sessionId, getPersona, getLLMSelection, sp
     col: "right",
     window_type: "window_chat",
     onSend: async (text) => {
-      const sel = typeof getLLMSelection === "function" ? getLLMSelection() : null;
+      // Use caller’s selection if present; otherwise fetch from API
+      const selLocal = (typeof getLLMSelection === "function") ? getLLMSelection() : null;
+      let sel = selLocal;
+
+      // normalize camel/snake just in case
+      if (sel && (sel.serviceId || sel.modelId)) {
+        sel = {
+          service_id: sel.service_id ?? sel.serviceId ?? null,
+          model_id:   sel.model_id   ?? sel.modelId   ?? null,
+        };
+      }
+
+      if (!sel?.service_id) {
+        try { sel = await sdk.llm.getSelection(); } catch { sel = null; }
+      }
+
+      // (optional) sanity log
+      // console.debug("chat selection:", sel);
+
       const out = await sdk.chat.send({
         sessionId,
         message: text,
-        persona: typeof getPersona === "function" ? getPersona() : "",
-        serviceId: sel?.service_id,
-        modelId: sel?.model_id,
+        persona: (typeof getPersona === "function" ? getPersona() : ""),
+        serviceId: sel?.service_id || "",   // non-empty ensures it’s included in form body
+        modelId:   sel?.model_id   || "",
       });
+
       return { role: "assistant", content: out.response };
     },
   });

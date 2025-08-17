@@ -13,10 +13,18 @@ const llmApi = (sdk) => ({
   create:       (p)   => sdk.llm.createService(p),
   update:       (id,p)=> sdk.llm.updateService ? sdk.llm.updateService(id,p) : sdk.llm.putService(id,p),
   remove:       (id)  => sdk.llm.deleteService ? sdk.llm.deleteService(id) : sdk.llm.removeService(id),
-  setActive:    ({ service_id, model_id }) => sdk.llm.updateSelection({ service_id, model_id }),
+  setActive: async ({ service_id, model_id }) => {
+  // server expects user_id in body; fetch it and include
+  let uid = null;
+  try {
+    const u = await sdk.sessions.getUser();
+    uid = u?.user_id || u?.id || u?.userId;
+  } catch {}
+  return sdk.llm.updateSelection({ user_id: uid, service_id, model_id });
+},
 });
 
-export function initLLMServicesWindows({ sdk, spawnWindow, onSelectionChange }) {
+export function initLLMServicesWindows({ sdk, spawnWindow }) {
   if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
 
   // ===== Window A: Services List =====
@@ -135,7 +143,6 @@ export function initLLMServicesWindows({ sdk, spawnWindow, onSelectionChange }) 
       api.getSelection().catch(() => null),
     ]);
     currentSelection = selection || null;
-    if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
 
     const rows = services.map((s) => ({
       ...s,
