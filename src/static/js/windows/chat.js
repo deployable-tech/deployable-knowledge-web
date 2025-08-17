@@ -2,6 +2,15 @@
 export function initChatWindow({ sdk, sessionId, getPersona, getLLMSelection, spawnWindow }) {
   if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
 
+  async function getUserId() {
+    try {
+      const u = await sdk.sessions.getUser();
+      return u?.id ?? u?.user_id ?? u?.userId ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   spawnWindow({
     id: "win_chat",
     title: "Chat",
@@ -27,8 +36,11 @@ export function initChatWindow({ sdk, sessionId, getPersona, getLLMSelection, sp
       // (optional) sanity log
       // console.debug("chat selection:", sel);
 
+      const uid = await getUserId();
+
       const out = await sdk.chat.send({
         sessionId,
+        userId: uid,
         message: text,
         persona: (typeof getPersona === "function" ? getPersona() : ""),
         serviceId: sel?.service_id || "",   // non-empty ensures it’s included in form body

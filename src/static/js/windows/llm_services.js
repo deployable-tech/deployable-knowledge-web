@@ -6,6 +6,15 @@ let svcTable;
 let currentSelection = null; // { service_id, model_id }
 let editingId = null;
 
+async function getUserId(sdk) {
+  try {
+    const u = await sdk.sessions.getUser();
+    return u?.id ?? u?.user_id ?? u?.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // helpers for sdk.llm method names
 const llmApi = (sdk) => ({
   list:         () => sdk.llm.listServices(),
@@ -14,14 +23,9 @@ const llmApi = (sdk) => ({
   update:       (id,p)=> sdk.llm.updateService ? sdk.llm.updateService(id,p) : sdk.llm.putService(id,p),
   remove:       (id)  => sdk.llm.deleteService ? sdk.llm.deleteService(id) : sdk.llm.removeService(id),
   setActive: async ({ service_id, model_id }) => {
-  // server expects user_id in body; fetch it and include
-  let uid = null;
-  try {
-    const u = await sdk.sessions.getUser();
-    uid = u?.user_id || u?.id || u?.userId;
-  } catch {}
-  return sdk.llm.updateSelection({ user_id: uid, service_id, model_id });
-},
+    const uid = await getUserId(sdk);
+    return sdk.llm.updateSelection({ user_id: uid, service_id, model_id });
+  },
 });
 
 export function initLLMServicesWindows({ sdk, spawnWindow }) {

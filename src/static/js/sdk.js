@@ -68,6 +68,7 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          user_id: p.userId,
           service_id: p.serviceId,
           model_id: p.modelId,
           persona: p.persona ?? "",
@@ -83,6 +84,7 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          user_id: p.userId,
           service_id: p.serviceId,
           model_id: p.modelId,
           persona: p.persona ?? "",
@@ -98,6 +100,7 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          user_id: p.userId,
           service_id: p.serviceId,
           model_id: p.modelId,
           persona: p.persona ?? "",
