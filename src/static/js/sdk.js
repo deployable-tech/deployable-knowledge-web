@@ -68,6 +68,8 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          service_id: p.serviceId,
+          model_id: p.modelId,
           persona: p.persona ?? "",
           template_id: p.templateId ?? "rag_chat",
           top_k: p.topK ?? 8,
@@ -81,6 +83,8 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          service_id: p.serviceId,
+          model_id: p.modelId,
           persona: p.persona ?? "",
           template_id: p.templateId ?? "rag_chat",
           top_k: p.topK ?? 8,
@@ -94,6 +98,8 @@ export class DKClient {
         const body = this._form({
           message: p.message,
           session_id: p.sessionId,
+          service_id: p.serviceId,
+          model_id: p.modelId,
           persona: p.persona ?? "",
           template_id: p.templateId ?? "rag_chat",
           top_k: p.topK ?? 8,

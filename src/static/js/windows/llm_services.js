@@ -16,7 +16,7 @@ const llmApi = (sdk) => ({
   setActive:    ({ service_id, model_id }) => sdk.llm.updateSelection({ service_id, model_id }),
 });
 
-export function initLLMServicesWindows({ sdk, spawnWindow }) {
+export function initLLMServicesWindows({ sdk, spawnWindow, onSelectionChange }) {
   if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
 
   // ===== Window A: Services List =====
@@ -135,6 +135,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow }) {
       api.getSelection().catch(() => null),
     ]);
     currentSelection = selection || null;
+    if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
 
     const rows = services.map((s) => ({
       ...s,
