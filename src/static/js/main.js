@@ -66,7 +66,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("menu-llm")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initLLMServicesWindows({ sdk, spawnWindow, onSelectionChange: (sel) => { llmSelection = sel; } });
+    initLLMServicesWindows({
+      sdk,
+      spawnWindow,
+      initialSelection: llmSelection,
+      onSelectionChange: (sel) => { llmSelection = sel; }
+    });
   });
 
   document.getElementById("menu-templates")?.addEventListener("click", (e) => {

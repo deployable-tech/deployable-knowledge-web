@@ -5,15 +5,7 @@ import { closeWindow } from "/static/ui/js/window.js";
 let svcTable;
 let currentSelection = null; // { service_id, model_id }
 let editingId = null;
-
-async function getUserId(sdk) {
-  try {
-    const u = await sdk.sessions.getUser();
-    return u?.id ?? u?.user_id ?? u?.userId ?? null;
-  } catch {
-    return null;
-  }
-}
+let svcRows = [];
 
 // helpers for sdk.llm method names
 const llmApi = (sdk) => ({
@@ -22,14 +14,12 @@ const llmApi = (sdk) => ({
   create:       (p)   => sdk.llm.createService(p),
   update:       (id,p)=> sdk.llm.updateService ? sdk.llm.updateService(id,p) : sdk.llm.putService(id,p),
   remove:       (id)  => sdk.llm.deleteService ? sdk.llm.deleteService(id) : sdk.llm.removeService(id),
-  setActive: async ({ service_id, model_id }) => {
-    const uid = await getUserId(sdk);
-    return sdk.llm.updateSelection({ user_id: uid, service_id, model_id });
-  },
 });
 
-export function initLLMServicesWindows({ sdk, spawnWindow }) {
+export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = null, onSelectionChange }) {
   if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
+  currentSelection = initialSelection || null;
+  svcRows = [];
 
   // ===== Window A: Services List =====
   spawnWindow({
@@ -58,11 +48,11 @@ export function initLLMServicesWindows({ sdk, spawnWindow }) {
     ],
     items: [],
     actions: {
-      select: async (row) => {
-        const api = llmApi(sdk);
-        const model_id = currentSelection?.model_id ?? null;
-        await api.setActive({ service_id: row.id, model_id });
-        await refreshServices();
+      select: (row) => {
+        currentSelection = { service_id: row.id, model_id: currentSelection?.model_id ?? null };
+        svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
+        svcTable.setItems(svcRows);
+        if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
       },
       edit: (row) => openEditorModal(row),
       del: async (row) => {
@@ -142,22 +132,24 @@ export function initLLMServicesWindows({ sdk, spawnWindow }) {
 
   async function refreshServices() {
     const api = llmApi(sdk);
-    const [services, selection] = await Promise.all([
-      api.list(),
-      api.getSelection().catch(() => null),
-    ]);
-    currentSelection = selection || null;
+    const services = await api.list();
+    if (!currentSelection) {
+      currentSelection = await api.getSelection().catch(() => null);
+      if (currentSelection && typeof onSelectionChange === "function") {
+        onSelectionChange(currentSelection);
+      }
+    }
 
-    const rows = services.map((s) => ({
+    svcRows = services.map((s) => ({
       ...s,
       status: s.is_enabled ? "enabled" : "disabled",
-      active: selection?.service_id === s.id ? "✓" : "",
+      active: currentSelection?.service_id === s.id ? "✓" : "",
       created_at: s.created_at ? fmtDate(s.created_at) : "",
     }));
 
-    svcTable.setItems(rows);
+    svcTable.setItems(svcRows);
     if (editingId) {
-      const fresh = rows.find(r => r.id === editingId);
+      const fresh = svcRows.find(r => r.id === editingId);
       if (fresh) fillEditor(fresh);
     }
   }
