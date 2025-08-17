@@ -35,16 +35,18 @@ async function ensureSessionId(sdk) {
 // now ensure chat session
 const sessionId = await ensureSessionId(sdk);
 let persona = "";
+let llmSelection = null;
 
 // ---- APP INIT ----
 window.addEventListener("DOMContentLoaded", async () => {
   initFramework();
   // ensure user session cookie exists before anything else
   await sdk.auth.beginUser();
+  llmSelection = await sdk.llm.getSelection().catch(() => null);
 
   document.getElementById("menu-chat")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initChatWindow({ sdk, sessionId, getPersona: () => persona, spawnWindow });
+    initChatWindow({ sdk, sessionId, getPersona: () => persona, getLLMSelection: () => llmSelection, spawnWindow });
   });
 
   document.getElementById("menu-chat-history")?.addEventListener("click", (e) => {
@@ -64,7 +66,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("menu-llm")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initLLMServicesWindows({ sdk, spawnWindow });
+    initLLMServicesWindows({ sdk, spawnWindow, onSelectionChange: (sel) => { llmSelection = sel; } });
   });
 
   document.getElementById("menu-templates")?.addEventListener("click", (e) => {
