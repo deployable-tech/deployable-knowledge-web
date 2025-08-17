@@ -8,7 +8,7 @@ export function initTemplatesWindow({ sdk, spawnWindow }) {
     col: "right",
     window_type: "window_generic",
     Elements: [
-      { type: "list_view", id: "tpl_list", items: [], template: { title: t => t.id, subtitle: t => t.name } },
+      { type: "select", id: "tpl_select", label: "Templates", options: [] },
       { type: "text_field", id: "tpl_id", label: "ID" },
       { type: "text_field", id: "tpl_name", label: "Name" },
       { type: "text_area", id: "tpl_user", label: "User Format" },
@@ -17,11 +17,34 @@ export function initTemplatesWindow({ sdk, spawnWindow }) {
     ]
   });
 
+  let templates = [];
+
   async function refreshTemplates() {
-    const tpls = await sdk.templates.list();
-    document.getElementById("tpl_list")?.update({ items: tpls });
+    templates = await sdk.templates.list();
+    const sel = document.getElementById("tpl_select");
+    if (sel) {
+      sel.innerHTML = "";
+      const emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "Select a template";
+      sel.appendChild(emptyOpt);
+      for (const t of templates) {
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = t.name || t.id;
+        sel.appendChild(opt);
+      }
+    }
   }
   refreshTemplates();
+
+  document.getElementById("tpl_select")?.addEventListener("change", (e) => {
+    const tpl = templates.find(t => t.id === e.target.value);
+    document.getElementById("tpl_id").value = tpl?.id || "";
+    document.getElementById("tpl_name").value = tpl?.name || "";
+    document.getElementById("tpl_user").value = tpl?.user_format || "";
+    document.getElementById("tpl_system").value = tpl?.system || "";
+  });
 
   document.getElementById("tpl_save")?.addEventListener("click", async () => {
     const id = document.getElementById("tpl_id").value;
@@ -30,7 +53,9 @@ export function initTemplatesWindow({ sdk, spawnWindow }) {
     const system = document.getElementById("tpl_system").value;
     if (id) {
       await sdk.templates.put(id, { id, name, user_format, system });
-      refreshTemplates();
+      await refreshTemplates();
+      const sel = document.getElementById("tpl_select");
+      if (sel) sel.value = id;
     }
   });
 }
