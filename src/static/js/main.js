@@ -1,11 +1,10 @@
 import { initFramework, spawnWindow } from "/static/ui/js/framework.js";
-import { DKClient, ensureChatSessionId } from "/static/js/sdk.js";
+import { DKClient } from "/static/js/sdk.js";
 import { initDocumentsWindow } from "./windows/documents.js";
 import { initSegmentsWindow } from "./windows/segments.js";
 import { initLLMServicesWindows } from "./windows/llm_services.js";
 import { initChatWindow } from "./windows/chat.js";
 import { initSessionsWindow } from "./windows/sessions.js";
-import { initSearchWindow } from "./windows/search.js";
 import { initPersonaWindow } from "./windows/persona.js";
 import { initTemplatesWindow } from "./windows/templates.js";
 
@@ -33,25 +32,54 @@ async function ensureSessionId(sdk) {
   }
   return sid;
 }
-  // now ensure chat session
-  const sessionId = await ensureSessionId(sdk);
-  let persona = "";
-
+// now ensure chat session
+const sessionId = await ensureSessionId(sdk);
+let persona = "";
 
 // ---- APP INIT ----
 window.addEventListener("DOMContentLoaded", async () => {
   initFramework();
-  // ... after session/persona init
-
-  initDocumentsWindow({ sdk, spawnWindow });
-  initSegmentsWindow({ sdk, spawnWindow });
-  // make sure user session cookie exists before anything else
+  // ensure user session cookie exists before anything else
   await sdk.auth.beginUser();
 
-  initChatWindow({ sdk, sessionId, getPersona: () => persona, spawnWindow });
-  initSessionsWindow({ sdk, spawnWindow });
-  initSearchWindow({ sdk, spawnWindow });
-  initPersonaWindow({ spawnWindow, initialPersona: persona, onChange: (v) => { persona = v; } });
-  initTemplatesWindow({ sdk, spawnWindow });
-  initLLMServicesWindows({ sdk, spawnWindow });
+  document.getElementById("menu-chat")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initChatWindow({ sdk, sessionId, getPersona: () => persona, spawnWindow });
+  });
+
+  document.getElementById("menu-chat-history")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initSessionsWindow({ sdk, spawnWindow });
+  });
+
+  document.getElementById("menu-docs")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initDocumentsWindow({ sdk, spawnWindow });
+  });
+
+  document.getElementById("menu-segments")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initSegmentsWindow({ sdk, spawnWindow });
+  });
+
+  document.getElementById("menu-llm")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initLLMServicesWindows({ sdk, spawnWindow });
+  });
+
+  document.getElementById("menu-templates")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initTemplatesWindow({ sdk, spawnWindow });
+  });
+
+  document.getElementById("menu-persona")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    initPersonaWindow({
+      spawnWindow,
+      initialPersona: persona,
+      onChange: (v) => {
+        persona = v;
+      },
+    });
+  });
 });
