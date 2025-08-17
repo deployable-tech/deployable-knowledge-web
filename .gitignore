@@ -1,0 +1,7 @@
+# Python / Node / build junk (tweak to taste)
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.env
+.DS_Store

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deployable UI — Minimal Example</title>
+    <!-- Core UI styles -->
+    <link rel="stylesheet" href="../../src/ui/css/framework.css">
+    <style>
+      body { margin: 0; }
+      .app {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+      .col { min-height: 80vh; }
+      header.appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border, #2a2a2a);
+      }
+/* === Mini-window base (alias legacy `.window` styles) === */
+.miniwin {
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 200px;
+  background: var(--ui-bg, #111);
+  border: 1px solid var(--ui-border, #2a2a2a);
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  border-radius: 10px;
+  z-index: 2; /* ensure above column background */
+}
+
+/* Titlebar is the drag handle */
+.miniwin .titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ui-border, #2a2a2a);
+  user-select: none;
+  cursor: grab;
+  /* Prevent touch scrolling killing pointer events */
+  touch-action: none;
+}
+.miniwin .titlebar .title { flex: 1; }
+.miniwin .titlebar .actions { display: inline-flex; gap: 6px; }
+.miniwin .titlebar .icon-btn {
+  background: none; border: 1px solid var(--ui-border, #2a2a2a);
+  border-radius: 8px; padding: 2px 6px; cursor: pointer;
+}
+
+/* Window body */
+.miniwin .content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* Resizer handle (if used) */
+.miniwin .win-resizer-y {
+  height: 6px;
+  cursor: ns-resize;
+  background: transparent;
+}
+
+/* === Drag state expected by dnd.js === */
+.miniwin.dragging {
+  position: fixed;           /* dnd.js uses left/top; fixed makes them take effect */
+  z-index: 9999;
+  width: var(--drag-w);       /* set at drag-start by JS */
+  pointer-events: none;       /* avoid hit-testing while dragging */
+  cursor: grabbing;
+}
+
+/* Drop feedback (columns get .drop-candidate) */
+.columns.dragging .col { transition: background .12s ease; }
+.columns.dragging .col.drop-candidate {
+  outline: 2px dashed color-mix(in oklab, var(--accent, #52d273) 60%, transparent);
+  outline-offset: -6px;
+  background: color-mix(in oklab, var(--accent, #52d273) 7%, transparent);
+}
+
+/* Marker the script inserts to show insertion point */
+.drop-marker {
+  height: 4px;
+  background: color-mix(in oklab, var(--accent, #52d273) 60%, transparent);
+  border-radius: 2px;
+  margin: 4px 0;
+}
+
+/* === Split columns that the splitter.js expects === */
+#columns { display: flex; gap: 0; height: calc(100vh - 58px); }
+#col-left, #col-right { overflow: auto; padding: 12px; }
+#col-left  { flex: 0 0 50%; }
+#col-right { flex: 1 1 auto; }
+#splitter  { width: 6px; cursor: col-resize; background: var(--border, #2a2a2a); }
+#splitter.dragging { background: var(--positive-accent, #52d273); }
+
+/* Mobile fallback: stack columns */
+@media (max-width: 700px) {
+  #columns { flex-direction: column; height: auto; }
+  #splitter { height: 6px; width: 100%; cursor: row-resize; }
+  #col-left, #col-right { flex: 1 1 auto; }
+}
+
+    </style>
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="brand">Deployable UI — Minimal</div>
+      <div class="actions">
+        <button id="btn-theme" class="btn">Theme</button>
+        <button id="btn-chat" class="btn">Chat</button>
+      </div>
+    </header>
+
+<main id="columns" class="columns">
+  <section id="col-left" class="col"></section>
+  <div id="splitter" class="splitter" role="separator" aria-orientation="vertical"></div>
+  <section id="col-right" class="col"></section>
+</main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

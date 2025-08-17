@@ -1,0 +1,21 @@
+.ui-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ui-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ui-form .form-row label {
+  font-weight: bold;
+}
+.ui-form .form-row .error {
+  color: #c00;
+  font-size: 0.8em;
+}
+.ui-form .form-footer {
+  margin-top: 8px;
+  text-align: right;
+}

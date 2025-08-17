@@ -1,0 +1,15 @@
+.item-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.item-list th, .item-list td {
+  border-bottom: 1px solid #ddd;
+  padding: 4px 8px;
+  text-align: left;
+}
+.item-list td.error {
+  color: #c00;
+}
+.item-list button {
+  margin-right: 4px;
+}

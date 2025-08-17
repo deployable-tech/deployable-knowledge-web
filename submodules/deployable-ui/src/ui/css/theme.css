@@ -1,0 +1,55 @@
+/* === THEME SYSTEM ===
+   Change --h to recolor the whole UI.
+   Examples: blue=220, purple=270, green=150, red=10, gray=220 + low --sat
+*/
+:root {
+  --h: 220;          /* base hue */
+  --sat: 18%;        /* global saturation bias */
+  --txt: 92%;        /* text lightness */
+
+  /* Layout & typography */
+  --titlebar-height: calc(var(--font-size-base) * 2.5714);
+  --font-size-base: 14px;
+  --font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+  --win-gap-vertical: 12px;
+  --win-gap-horizontal: 16px;
+
+  --positive-h: 150;
+  --negative-h: 10;
+  --neutral-h: calc((var(--positive-h) + var(--negative-h)) / 2 + 180);
+
+  /* Base lightness stops (dark theme) */
+  --l-bg: 7%;
+  --l-panel: 11%;
+  --l-elev: 16%;
+  --l-border: 20%;
+  --l-muted: 65%;
+
+  /* Derived palette */
+  --base-color: hsl(var(--h) var(--sat) var(--l-panel));
+  --bg:        hsl(var(--h) var(--sat) var(--l-bg));
+  --panel:     var(--base-color);
+  --elev:      hsl(var(--h) var(--sat) var(--l-elev));
+  --panel-sel: hsl(var(--h) var(--sat) calc(var(--l-panel) + 6%));
+  --text:      hsl(var(--h) calc(var(--sat) * 2) var(--txt));
+  --muted:     hsl(var(--h) 12% var(--l-muted));
+  --border:    hsl(var(--h) 18% var(--l-border));
+
+  /* Accents */
+  --positive-accent: hsl(var(--positive-h) 60% 55%);
+  --negative-accent: hsl(var(--negative-h) 60% 55%);
+  --neutral-accent: hsl(var(--neutral-h) 60% 55%);
+  --accent: var(--positive-accent);
+  --accent-2: var(--neutral-accent);
+
+  --shadow: 0 10px 30px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
+  --win-radius: 16px;
+  --backdrop: rgba(2, 6, 12, .55);
+}
+
+/* Optional pre-baked themes: add class to <html> or <body> */
+.theme-purple { --h: 270; }
+.theme-green  { --h: 150; }
+.theme-red    { --h: 10;  }
+.theme-gray   { --h: 220; --sat: 6%; }
+
