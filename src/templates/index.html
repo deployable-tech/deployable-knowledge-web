@@ -8,6 +8,33 @@
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
+  <header class="title-bar">
+    <div class="nav-left">
+      <div class="title">Deployable Knowledge Web</div>
+      <nav class="menu">
+        <div class="dropdown">
+          <button class="dropbtn">Tools</button>
+          <div class="dropdown-content">
+            <a href="#">Tool 1</a>
+            <a href="#">Tool 2</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button class="dropbtn">Settings</button>
+          <div class="dropdown-content">
+            <a href="#">Preference</a>
+            <a href="#">Account</a>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <div class="user-menu dropdown">
+      <button class="dropbtn">User</button>
+      <div class="dropdown-content">
+        <a href="#">Logout</a>
+      </div>
+    </div>
+  </header>
   <main id="columns" class="columns">
     <section id="col-left" class="col"></section>
     <div id="splitter" class="splitter" role="separator" aria-orientation="vertical"></div>
