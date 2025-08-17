@@ -154,10 +154,10 @@ export function initLLMServicesWindows({ sdk, spawnWindow }) {
     setValue("svc_id",       svc?.id || "");
     setValue("svc_name",     svc?.name || "");
     setValue("svc_provider", svc?.provider || "");
-    setValue("svc_base",     svc?.config?.base_url || "");
-    setValue("svc_auth",     svc?.config?.auth_ref || "");
-    setValue("svc_timeout",  svc?.config?.timeout_sec != null ? String(svc.config.timeout_sec) : "");
-    setValue("svc_extra",    prettyJSON(svc?.config?.extra) || "");
+    setValue("svc_base",     svc?.base_url || "");
+    setValue("svc_auth",     svc?.auth_ref || "");
+    setValue("svc_timeout",  svc?.timeout_sec != null ? String(svc.timeout_sec) : "");
+    setValue("svc_extra",    prettyJSON(svc?.extra) || "");
   }
 
   function gatherEditorPayload() {
@@ -181,12 +181,10 @@ export function initLLMServicesWindows({ sdk, spawnWindow }) {
     return {
       name,
       provider,
-      config: {
-        base_url,
-        auth_ref,
-        timeout_sec,
-        extra
-      }
+      base_url,
+      auth_ref,
+      timeout_sec,
+      extra
     };
   }
 
