@@ -51,11 +51,13 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
     ],
     items: [],
     actions: {
-      select: (row) => {
-        currentSelection = { service_id: row.id, model_id: currentSelection?.model_id ?? null };
+      select: async (row) => {
+        currentSelection = { service_id: row.id, model_id: null };
         svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
         svcTable.setItems(svcRows);
-        refreshModels();
+        try { currentSelection = await sdk.llm.updateSelection(currentSelection); }
+        catch (e) { alert("Selection failed: " + (e.bodyText || e.message)); }
+        await refreshModels();
         if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
       },
       edit: (row) => openEditorModal(row),
@@ -100,9 +102,19 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       { key: "name",   label: "Name" },
       { key: "model",  label: "Model" },
       { key: "status", label: "Status" },
+      { key: "active", label: "Active" },
     ],
     items: [],
     actions: {
+      select: async (row) => {
+        if (!currentSelection?.service_id) return;
+        try { currentSelection = await sdk.llm.updateSelection({ service_id: currentSelection.service_id, model_id: row.id }); }
+        catch (e) { alert("Selection failed: " + (e.bodyText || e.message)); }
+        finally {
+          await refreshModels();
+          if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
+        }
+      },
       edit: (row) => openModelModal(row),
       del: async (row) => {
         try { await sdk.llm.deleteModel(row.id); }
@@ -213,6 +225,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
     modelRows = models.map((m) => ({
       ...m,
       status: m.is_enabled ? "enabled" : "disabled",
+      active: currentSelection?.model_id === m.id ? "✓" : "",
     }));
     modelTable.setItems(modelRows);
     if (modelEditingId) {
