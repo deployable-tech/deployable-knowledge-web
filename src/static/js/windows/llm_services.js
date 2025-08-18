@@ -50,32 +50,36 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       { key: "created_at", label: "Created" },
     ],
     items: [],
-    actions: {
-      select: async (row) => {
-        currentSelection = { service_id: row.id, model_id: null };
-        svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
-        svcTable.setItems(svcRows);
-        try { currentSelection = await sdk.llm.updateSelection({ service_id: row.id }); }
-        catch (e) { alert("Selection failed: " + (e.bodyText || e.message)); }
-        await refreshModels();
-        if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
+      actions: {
+        select: async (row) => {
+          currentSelection = { ...currentSelection, service_id: row.id, model_id: null };
+          svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
+          svcTable.setItems(svcRows);
+          try {
+            const user_id = currentSelection?.user_id || "local-user";
+            currentSelection = await sdk.llm.updateSelection({ user_id, service_id: row.id });
+          } catch (e) {
+            alert("Selection failed: " + (e.bodyText || e.message));
+          }
+          await refreshModels();
+          if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
+        },
+        edit: (row) => openEditorModal(row),
+        del: async (row) => {
+          const api = llmApi(sdk);
+          try { await api.remove(row.id); }
+          catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
+          finally { await refreshServices(); }
+        },
+        toggleEnabled: async (row) => {
+          const api = llmApi(sdk);
+          try { await api.update(row.id, { is_enabled: !row.is_enabled }); }
+          catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
+          finally { await refreshServices(); }
+        },
       },
-      edit: (row) => openEditorModal(row),
-      del: async (row) => {
-        const api = llmApi(sdk);
-        try { await api.remove(row.id); }
-        catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
-        finally { await refreshServices(); }
-      },
-      toggleEnabled: async (row) => {
-        const api = llmApi(sdk);
-        try { await api.update(row.id, { is_enabled: !row.is_enabled }); }
-        catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
-        finally { await refreshServices(); }
-      },
-    },
-    getRowId: (row) => row.id,
-  });
+      getRowId: (row) => row.id,
+    });
 
   document.getElementById("svc_refresh")?.addEventListener("click", () => refreshServices());
   document.getElementById("svc_new")?.addEventListener("click", () => openEditorModal(null));
@@ -105,30 +109,33 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       { key: "active", label: "Active" },
     ],
     items: [],
-    actions: {
-      select: async (row) => {
-        if (!currentSelection?.service_id) return;
-        try { currentSelection = await sdk.llm.updateSelection({ service_id: currentSelection.service_id, model_id: row.id }); }
-        catch (e) { alert("Selection failed: " + (e.bodyText || e.message)); }
-        finally {
-          await refreshModels();
-          if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
-        }
+      actions: {
+        select: async (row) => {
+          if (!currentSelection?.service_id) return;
+          try {
+            const user_id = currentSelection?.user_id || "local-user";
+            currentSelection = await sdk.llm.updateSelection({ user_id, service_id: currentSelection.service_id, model_id: row.id });
+          } catch (e) {
+            alert("Selection failed: " + (e.bodyText || e.message));
+          } finally {
+            await refreshModels();
+            if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
+          }
+        },
+        edit: (row) => openModelModal(row),
+        del: async (row) => {
+          try { await sdk.llm.deleteModel(row.id); }
+          catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
+          finally { await refreshModels(); }
+        },
+        toggleEnabled: async (row) => {
+          try { await sdk.llm.updateModel(row.id, { is_enabled: !row.is_enabled }); }
+          catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
+          finally { await refreshModels(); }
+        },
       },
-      edit: (row) => openModelModal(row),
-      del: async (row) => {
-        try { await sdk.llm.deleteModel(row.id); }
-        catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
-        finally { await refreshModels(); }
-      },
-      toggleEnabled: async (row) => {
-        try { await sdk.llm.updateModel(row.id, { is_enabled: !row.is_enabled }); }
-        catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
-        finally { await refreshModels(); }
-      },
-    },
-    getRowId: (row) => row.id,
-  });
+      getRowId: (row) => row.id,
+    });
 
   document.getElementById("model_refresh")?.addEventListener("click", () => refreshModels());
   document.getElementById("model_new")?.addEventListener("click", () => openModelModal(null));
