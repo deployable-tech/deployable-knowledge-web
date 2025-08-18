@@ -17,7 +17,9 @@ export function createItemList({
     th.textContent = col.label || col.key;
     headerRow.appendChild(th);
   }
-  if (Object.keys(actions).length) {
+  const selectAction = actions.select;
+  const otherActions = Object.entries(actions).filter(([name]) => name !== "select");
+  if (otherActions.length) {
     const th = document.createElement("th");
     headerRow.appendChild(th);
   }
@@ -66,15 +68,22 @@ export function createItemList({
         td.textContent = item[col.key];
         tr.appendChild(td);
       }
-      if (Object.keys(actions).length) {
+      if (otherActions.length) {
         const td = document.createElement("td");
-        for (const [name, fn] of Object.entries(actions)) {
+        for (const [name, fn] of otherActions) {
           const btn = document.createElement("button");
           btn.textContent = name;
           btn.addEventListener("click", () => fn(item));
           td.appendChild(btn);
         }
         tr.appendChild(td);
+      }
+      if (selectAction) {
+        tr.classList.add("is-selectable");
+        tr.addEventListener("click", (ev) => {
+          if (ev.target.closest("button")) return;
+          selectAction(item);
+        });
       }
       tbody.appendChild(tr);
     }

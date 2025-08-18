@@ -576,6 +576,9 @@ html, body {
 .item-list button {
   margin-right: 4px;
 }
+.item-list tr.is-selectable {
+  cursor: pointer;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;

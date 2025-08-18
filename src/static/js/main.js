@@ -33,7 +33,7 @@ async function ensureSessionId(sdk) {
   return sid;
 }
 // now ensure chat session
-const sessionId = await ensureSessionId(sdk);
+let sessionId = await ensureSessionId(sdk);
 let persona = "";
 let llmSelection = null;
 
@@ -44,14 +44,43 @@ window.addEventListener("DOMContentLoaded", async () => {
   await sdk.auth.beginUser();
   llmSelection = await sdk.llm.getSelection().catch(() => null);
 
+  const openChat = (sid) => {
+    initChatWindow({ sdk, sessionId: sid, getPersona: () => persona, getLLMSelection: () => llmSelection, spawnWindow });
+  };
+
+  const startNewChat = async () => {
+    const { session_id } = await sdk.sessions.create();
+    sessionId = session_id;
+    setCookie('dk_session_id', sessionId);
+    openChat(sessionId);
+  };
+
+  const openHistory = () => {
+    initSessionsWindow({
+      sdk,
+      spawnWindow,
+      onSelect: (s) => {
+        sessionId = s.session_id;
+        setCookie('dk_session_id', sessionId);
+        openChat(sessionId);
+      },
+      onNewChat: async () => { await startNewChat(); }
+    });
+  };
+
   document.getElementById("menu-chat")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initChatWindow({ sdk, sessionId, getPersona: () => persona, getLLMSelection: () => llmSelection, spawnWindow });
+    openChat(sessionId);
+  });
+
+  document.getElementById("menu-new-chat")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    await startNewChat();
   });
 
   document.getElementById("menu-chat-history")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initSessionsWindow({ sdk, spawnWindow });
+    openHistory();
   });
 
   document.getElementById("menu-docs")?.addEventListener("click", (e) => {
