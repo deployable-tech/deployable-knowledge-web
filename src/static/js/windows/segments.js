@@ -22,13 +22,17 @@ export function initSegmentsWindow({ sdk, spawnWindow }) {
 
   segTable = createItemList({
     target: slot,
+    keyField: "id",
     columns: [
       { key: "source",   label: "Source" },
       { key: "preview",  label: "Preview" },
       { key: "priority", label: "Priority" }
     ],
-    items: [],
-    getRowId: (row) => row.id
+    items: []
+  });
+
+  segTable.on?.("row:click", () => {
+    segTable.getSelection?.();
   });
 
   document.getElementById("seg_refresh")?.addEventListener("click", () => refreshSegments(sdk));
