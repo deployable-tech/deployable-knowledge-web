@@ -79,8 +79,16 @@ export function render(config = {}, winId) {
     const role = msg.role || "assistant";
     const node = el("div", { class: `chat-msg is-${role}` });
     const content = msg.content;
-    if (content instanceof HTMLElement) node.appendChild(content);
-    else node.append(String(content ?? ""));
+
+    if (content instanceof HTMLElement) {
+      node.appendChild(content);
+    } else if (typeof content === "string" && role === "assistant") {
+      // backend responses may include HTML (e.g., <p> tags). Render it.
+      node.innerHTML = content;
+    } else {
+      node.textContent = String(content ?? "");
+    }
+
     if (msg.meta) node.appendChild(el("div", { class: "chat-meta" }, [msg.meta]));
     log.appendChild(node);
     if (cfg.autoScroll !== false) log.scrollTop = log.scrollHeight;
