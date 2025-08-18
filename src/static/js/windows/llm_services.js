@@ -231,6 +231,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
     const models = await sdk.llm.listModels(currentSelection.service_id).catch(() => []);
     modelRows = models.map((m) => ({
       ...m,
+      model: m.model || m.model_name || m.modelId || m.model_id || "",
       status: m.is_enabled ? "enabled" : "disabled",
       active: currentSelection?.model_id === m.id ? "✓" : "",
     }));
@@ -327,7 +328,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
     setValue("model_id",      m?.id || "");
     setValue("model_service", currentSelection?.service_id || "");
     setValue("model_name",    m?.name || "");
-    setValue("model_model",   m?.model || "");
+    setValue("model_model",   m?.model || m?.model_name || m?.modelId || m?.model_id || "");
     setValue("model_mode",    m?.mode || "");
     setValue("model_extra",   prettyJSON(m?.extra) || "");
   }
