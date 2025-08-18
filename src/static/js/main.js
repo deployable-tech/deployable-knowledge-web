@@ -1,58 +1,41 @@
 import { initFramework, spawnWindow } from "/static/ui/js/framework.js";
 import { DKClient } from "/static/js/sdk.js";
-import { initDocumentsWindow } from "./windows/documents.js";
-import { initSegmentsWindow } from "./windows/segments.js";
-import { initLLMServicesWindows } from "./windows/llm_services.js";
-import { initChatWindow } from "./windows/chat.js";
+import { getSessionId, setSessionId } from "./state.js";
+import { createDocumentsWindow } from "./windows/documents.js";
+import { createSegmentsWindow } from "./windows/segments.js";
+import { createLLMServicesWindow } from "./windows/llm_services.js";
+import { createChatWindow } from "./windows/chat.js";
 import { initSessionsWindow } from "./windows/sessions.js";
 import { initPersonaWindow } from "./windows/persona.js";
 import { initTemplatesWindow } from "./windows/templates.js";
 
-// ---- SDK SETUP ----
 const API_BASE = `${location.protocol}//${location.hostname}:8000`;
 const sdk = new DKClient({ baseUrl: API_BASE });
 
-// ---- COOKIE HELPERS ----
-function getCookie(name) {
-  const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return m ? decodeURIComponent(m[2]) : null;
-}
-function setCookie(name, value, days = 365) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
-}
-
-// ---- SESSION ENSURE ----
-async function ensureSessionId(sdk) {
-  let sid = getCookie('dk_session_id');
+async function ensureSessionId() {
+  let sid = getSessionId();
   if (!sid) {
     const { session_id } = await sdk.sessions.ensure();
     sid = session_id;
-    setCookie('dk_session_id', sid);
+    setSessionId(sid);
   }
   return sid;
 }
-// now ensure chat session
-let sessionId = await ensureSessionId(sdk);
-let persona = "";
-let llmSelection = null;
 
-// ---- APP INIT ----
+let sessionId = await ensureSessionId();
+let persona = "";
+
 window.addEventListener("DOMContentLoaded", async () => {
   initFramework();
-  // ensure user session cookie exists before anything else
   await sdk.auth.beginUser();
-  llmSelection = await sdk.llm.getSelection().catch(() => null);
 
-  const openChat = (sid) => {
-    initChatWindow({ sdk, sessionId: sid, getPersona: () => persona, getLLMSelection: () => llmSelection, spawnWindow });
-  };
+  const openChat = () => createChatWindow();
 
   const startNewChat = async () => {
     const { session_id } = await sdk.sessions.create();
     sessionId = session_id;
-    setCookie('dk_session_id', sessionId);
-    openChat(sessionId);
+    setSessionId(sessionId);
+    openChat();
   };
 
   const openHistory = () => {
@@ -61,8 +44,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       spawnWindow,
       onSelect: (s) => {
         sessionId = s.session_id;
-        setCookie('dk_session_id', sessionId);
-        openChat(sessionId);
+        setSessionId(sessionId);
+        openChat();
       },
       onNewChat: async () => { await startNewChat(); }
     });
@@ -70,7 +53,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("menu-chat")?.addEventListener("click", (e) => {
     e.preventDefault();
-    openChat(sessionId);
+    openChat();
   });
 
   document.getElementById("menu-new-chat")?.addEventListener("click", async (e) => {
@@ -85,22 +68,17 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("menu-docs")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initDocumentsWindow({ sdk, spawnWindow });
+    createDocumentsWindow();
   });
 
   document.getElementById("menu-segments")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initSegmentsWindow({ sdk, spawnWindow });
+    createSegmentsWindow();
   });
 
   document.getElementById("menu-llm")?.addEventListener("click", (e) => {
     e.preventDefault();
-    initLLMServicesWindows({
-      sdk,
-      spawnWindow,
-      initialSelection: llmSelection,
-      onSelectionChange: (sel) => { llmSelection = sel; }
-    });
+    createLLMServicesWindow();
   });
 
   document.getElementById("menu-templates")?.addEventListener("click", (e) => {

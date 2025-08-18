@@ -1,53 +1,44 @@
-// applications/windows/segments.js
-import { createItemList } from "/static/ui/js/components/list.js";
+import { spawnWindow } from '/static/ui/js/window.js';
 
-let segTable;
-
-export function initSegmentsWindow({ sdk, spawnWindow }) {
-  if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
-
+export function createSegmentsWindow() {
   spawnWindow({
-    id: "win_segments",
-    title: "DB Segments",
-    col: "left",
-    window_type: "window_generic",
+    id: 'win_segments',
+    window_type: 'window_generic',
+    title: 'DB Segments',
+    col: 'left',
+    unique: true,
+    resizable: true,
     Elements: [
-      { type: "submit_button", id: "seg_refresh", text: "Refresh" },
-      { type: "text", id: "seg_slot", showLabel: false, html: '<div id="seg_table_slot"></div>' }
+      {
+        type: 'item_list',
+        id: 'segments_list',
+        label: 'Segments',
+        label_position: 'top',
+        class: 'label-top',
+        fetch: async () => {
+          const segs = await fetch('/segments').then(r => r.json()).catch(() => []);
+          return segs.map(s => ({
+            id: s.id,
+            source: s.source || '',
+            priority: s.priority || '',
+            preview: (s.preview || s.text || '').replace(/\s+/g, ' ').slice(0, 120)
+          }));
+        },
+        item_template: {
+          elements: [
+            { type: 'text', bind: 'source', class: 'li-title' },
+            { type: 'text', bind: 'priority', class: 'li-meta' },
+            { type: 'text', bind: 'preview', class: 'li-subtle' },
+            { type: 'button', label: 'Open', action: 'open' }
+          ]
+        },
+        on: {
+          open: (item) => {
+            // TODO(voxa): open segment
+            console.log('open', item);
+          }
+        }
+      }
     ]
   });
-
-  const slot = document.getElementById("seg_table_slot");
-  slot.classList.add("list");
-
-  segTable = createItemList({
-    target: slot,
-    keyField: "id",
-    columns: [
-      { key: "source",   label: "Source" },
-      { key: "preview",  label: "Preview" },
-      { key: "priority", label: "Priority" }
-    ],
-    items: []
-  });
-
-  segTable.on?.("row:click", () => {
-    segTable.getSelection?.();
-  });
-
-  document.getElementById("seg_refresh")?.addEventListener("click", () => refreshSegments(sdk));
-  refreshSegments(sdk);
-}
-
-async function refreshSegments(sdk) {
-  const segs = await sdk.segments.list(); // [{id, source, preview, priority}, ...]
-  const rows = segs.map(s => ({
-    id: s.id,
-    source: s.source ?? "",
-    // If API sometimes sends full text instead of preview, fall back + truncate.
-    preview: (s.preview ?? s.text ?? "").replace(/\s+/g, " ").slice(0, 120) +
-             ((s.preview ?? s.text ?? "").length > 120 ? "…" : ""),
-    priority: s.priority ?? ""
-  }));
-  segTable.setItems(rows);
 }

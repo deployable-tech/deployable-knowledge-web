@@ -1,0 +1,5 @@
+/* Temporary until framework fixes label_position */
+.label-top .field-label {
+  display: block;
+  margin-bottom: 6px;
+}

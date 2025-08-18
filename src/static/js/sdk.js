@@ -372,3 +372,42 @@ export async function ensureChatSessionId(sdk) {
   const { session_id } = await sdk.sessions.ensure();
   return session_id;
 }
+// --- lightweight helpers for new UI ---
+export function getUserId() {
+  let id = localStorage.getItem('user_id');
+  if (!id) {
+    id = 'guest-' + Math.random().toString(36).slice(2, 10);
+    try { localStorage.setItem('user_id', id); } catch {}
+  }
+  return id;
+}
+
+async function _fetchJSON(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (!res.ok) {
+    const msg = await res.text();
+    console.error(`[SDK] ${opts.method || 'GET'} ${url} → ${res.status}`, msg);
+  }
+  return res.json().catch(() => ({}));
+}
+
+export async function updateSelection({ service_id, model_id }) {
+  const user_id = getUserId();
+  return _fetchJSON('/api/llm/selection', {
+    method: 'PUT',
+    body: { user_id, service_id, model_id },
+  });
+}
+
+export async function sendChat({ prompt, inactiveIds = [], topK = null, selection = {} }) {
+  const user_id = getUserId();
+  const { service_id = null, model_id = null } = selection;
+  return _fetchJSON('/api/chat', {
+    method: 'POST',
+    body: { user_id, prompt, inactive_ids: inactiveIds, top_k: topK, service_id, model_id },
+  });
+}

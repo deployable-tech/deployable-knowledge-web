@@ -1,405 +1,56 @@
-// applications/windows/llm_services.js
-import { createItemList } from "/static/ui/js/components/list.js";
-import { closeWindow } from "/static/ui/js/window.js";
+import { spawnWindow } from '/static/ui/js/window.js';
+import { updateSelection } from '../sdk.js';
+import { setSelection, getSelection } from '../state.js';
 
-let svcTable;
-let modelTable;
-let currentSelection = null; // { service_id, model_id }
-let editingId = null;       // service edit id
-let modelEditingId = null;  // model edit id
-let svcRows = [];
-let modelRows = [];
-
-// helpers for sdk.llm method names
-const llmApi = (sdk) => ({
-  list:         () => sdk.llm.listServices(),
-  getSelection: () => sdk.llm.getSelection(),
-  create:       (p)   => sdk.llm.createService(p),
-  update:       (id,p)=> sdk.llm.updateService ? sdk.llm.updateService(id,p) : sdk.llm.putService(id,p),
-  remove:       (id)  => sdk.llm.deleteService ? sdk.llm.deleteService(id) : sdk.llm.removeService(id),
-});
-
-export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = null, onSelectionChange }) {
-  if (typeof spawnWindow !== "function") throw new Error("spawnWindow missing");
-  currentSelection = initialSelection || null;
-  svcRows = [];
-
-  // ===== Window A: Services List =====
+export function createLLMServicesWindow() {
   spawnWindow({
-    id: "win_llm_services",
-    title: "LLM Services",
-    col: "left",
-    window_type: "window_generic",
+    id: 'win_llm_services',
+    window_type: 'window_generic',
+    title: 'LLM Services',
+    col: 'left',
+    unique: true,
+    resizable: true,
     Elements: [
-      { type: "submit_button", id: "svc_new",     text: "New Service" },
-      { type: "submit_button", id: "svc_refresh", text: "Refresh" },
-      { type: "text", id: "svc_slot", showLabel: false, html: '<div id="svc_table_slot"></div>' },
-    ],
-  });
-
-  const slot = document.getElementById("svc_table_slot");
-  slot.classList.add("list");
-
-  svcTable = createItemList({
-    target: slot,
-    keyField: "id",
-    columns: [
-      { key: "name",       label: "Name" },
-      { key: "provider",   label: "Provider" },
-      { key: "status",     label: "Status" },
-      { key: "active",     label: "Active" },
-      { key: "created_at", label: "Created" },
-    ],
-    items: [],
-    actions: {
-      select: {
-        label: "Select",
-        handler: async (row) => {
-          currentSelection = { ...currentSelection, service_id: row.id, model_id: null };
-          svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
-          svcTable.setItems(svcRows);
-          try {
-            const user_id = currentSelection?.user_id || "local-user";
-            currentSelection = await sdk.llm.updateSelection({ user_id, service_id: row.id });
-          } catch (e) {
-            alert("Selection failed: " + (e.bodyText || e.message));
+      {
+        type: 'item_list',
+        id: 'services_list',
+        label: 'Services',
+        label_position: 'top',
+        class: 'label-top',
+        fetch: async () => {
+          const res = await fetch('/api/llm/services').then(r => r.json()).catch(() => []);
+          const sel = getSelection();
+          const rows = [];
+          for (const svc of res) {
+            for (const m of svc.models || []) {
+              rows.push({
+                id: `${svc.service_id}-${m.model_id}`,
+                service_id: svc.service_id,
+                model_id: m.model_id,
+                name: svc.name,
+                model_name: m.name || m.model_name || '',
+                selected: sel.service_id === svc.service_id && sel.model_id === m.model_id
+              });
+            }
           }
-          await refreshModels();
-          if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
-        }
-      },
-      edit: {
-        label: "Edit",
-        handler: (row) => openEditorModal(row)
-      },
-      del: {
-        label: "Delete",
-        handler: async (row) => {
-          const api = llmApi(sdk);
-          try { await api.remove(row.id); }
-          catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
-          finally { await refreshServices(); }
-        }
-      },
-      toggleEnabled: {
-        label: "Enable/Disable",
-        handler: async (row) => {
-          const api = llmApi(sdk);
-          try { await api.update(row.id, { is_enabled: !row.is_enabled }); }
-          catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
-          finally { await refreshServices(); }
-        }
-      }
-    }
-  });
-
-  document.getElementById("svc_refresh")?.addEventListener("click", () => refreshServices());
-  document.getElementById("svc_new")?.addEventListener("click", () => openEditorModal(null));
-
-  // ===== Window B: Models List =====
-  spawnWindow({
-    id: "win_llm_models",
-    title: "LLM Models",
-    col: "right",
-    window_type: "window_generic",
-    Elements: [
-      { type: "submit_button", id: "model_new",     text: "New Model" },
-      { type: "submit_button", id: "model_refresh", text: "Refresh" },
-      { type: "text", id: "model_slot", showLabel: false, html: '<div id="model_table_slot"></div>' },
-    ],
-  });
-
-  const mslot = document.getElementById("model_table_slot");
-  mslot.classList.add("list");
-
-  modelTable = createItemList({
-    target: mslot,
-    keyField: "id",
-    columns: [
-      { key: "name",           label: "Name" },
-      { key: "model_name",     label: "Model" },
-      { key: "modality",       label: "Modality" },
-      { key: "context_window", label: "Context" },
-      { key: "supports_tools_disp", label: "Tools" },
-      { key: "status",         label: "Status" },
-      { key: "active",         label: "Active" },
-    ],
-    items: [],
-    actions: {
-      select: {
-        label: "Select",
-        when: () => !!currentSelection?.service_id,
-        handler: async (row) => {
-          if (!currentSelection?.service_id) return;
-          try {
-            const user_id = currentSelection?.user_id || "local-user";
-            currentSelection = await sdk.llm.updateSelection({ user_id, service_id: currentSelection.service_id, model_id: row.id });
-          } catch (e) {
-            alert("Selection failed: " + (e.bodyText || e.message));
-          } finally {
-            await refreshModels();
-            if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
+          return rows;
+        },
+        item_template: {
+          elements: [
+            { type: 'text', bind: 'name', class: 'li-title' },
+            { type: 'text', bind: 'model_name', class: 'li-meta' },
+            { type: 'button', label: 'Select', action: 'select' }
+          ]
+        },
+        on: {
+          select: async (item, el) => {
+            const payload = { service_id: item.service_id, model_id: item.model_id };
+            await updateSelection(payload);
+            setSelection(payload);
+            el.refresh?.();
           }
         }
-      },
-      edit: {
-        label: "Edit",
-        handler: (row) => openModelModal(row)
-      },
-      del: {
-        label: "Delete",
-        handler: async (row) => {
-          try { await sdk.llm.deleteModel(row.id); }
-          catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
-          finally { await refreshModels(); }
-        }
-      },
-      toggleEnabled: {
-        label: "Enable/Disable",
-        handler: async (row) => {
-          try { await sdk.llm.updateModel(row.id, { is_enabled: !row.is_enabled }); }
-          catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
-          finally { await refreshModels(); }
-        }
       }
-    }
+    ]
   });
-
-  document.getElementById("model_refresh")?.addEventListener("click", () => refreshModels());
-  document.getElementById("model_new")?.addEventListener("click", () => openModelModal(null));
-
-  const MODAL_WIN_TYPE = (window.UI?.windowTypes?.includes?.("window_modal")) ? "window_modal" : "window_generic";
-
-  function openEditorModal(service) {
-    editingId = service?.id || null;
-    closeWindow("modal_llm_editor");
-
-    spawnWindow({
-      id: "modal_llm_editor",
-      title: editingId ? "Edit LLM Service" : "New LLM Service",
-      window_type: MODAL_WIN_TYPE,
-      col: "right",
-      modal: true,
-      Elements: [
-        { type: "text_field",  id: "svc_id",       label: "ID (read-only)", placeholder: "(auto)", disabled: true },
-        { type: "text_field",  id: "svc_name",     label: "Name",           placeholder: "e.g., openai-prod" },
-        { type: "text_field",  id: "svc_provider", label: "Provider",       placeholder: "openai | ollama | azure | ..." },
-        { type: "text_field",  id: "svc_base",     label: "Base URL",       placeholder: "optional" },
-        { type: "text_field",  id: "svc_auth",     label: "Auth Ref",       placeholder: "optional" },
-        { type: "text_field",  id: "svc_timeout",  label: "Timeout (sec)",  placeholder: "e.g., 60" },
-        { type: "text_area",   id: "svc_extra",    label: "Extra (JSON)",   placeholder: "{ \"api_version\": \"...\" }" },
-        { type: "submit_button", id: "svc_save",   text: "Save" },
-        { type: "submit_button", id: "svc_cancel", text: "Cancel" },
-      ],
-    });
-
-    fillEditor(service || null);
-
-    const saveBtn = document.getElementById("svc_save");
-    const cancelBtn = document.getElementById("svc_cancel");
-
-    saveBtn?.addEventListener("click", async () => {
-      const api = llmApi(sdk);
-      const payload = gatherEditorPayload();
-      if (!payload) return;
-      if (!payload.name || !payload.provider) {
-        alert("Name and Provider are required.");
-        return;
-      }
-
-      try {
-        if (editingId) {
-          await api.update(editingId, payload);
-        } else {
-          await api.create(payload);
-        }
-      } catch (e) {
-        alert("Save failed: " + (e.bodyText || e.message));
-      } finally {
-        closeWindow("modal_llm_editor");
-        await refreshServices();
-      }
-    });
-
-    cancelBtn?.addEventListener("click", () => closeWindow("modal_llm_editor"));
-  }
-
-  async function refreshServices() {
-    const api = llmApi(sdk);
-    const services = await api.list();
-    if (!currentSelection) {
-      currentSelection = await api.getSelection().catch(() => null);
-      if (currentSelection && typeof onSelectionChange === "function") {
-        onSelectionChange(currentSelection);
-      }
-    }
-
-    svcRows = services.map((s) => ({
-      ...s,
-      status: s.is_enabled ? "enabled" : "disabled",
-      active: currentSelection?.service_id === s.id ? "✓" : "",
-      created_at: s.created_at ? fmtDate(s.created_at) : "",
-    }));
-
-    svcTable.setItems(svcRows);
-    if (editingId) {
-      const fresh = svcRows.find(r => r.id === editingId);
-      if (fresh) fillEditor(fresh);
-    }
-
-    await refreshModels();
-  }
-
-  async function refreshModels() {
-    if (!currentSelection?.service_id) {
-      modelRows = [];
-      modelTable.setItems(modelRows);
-      return;
-    }
-    const models = await sdk.llm.listModels(currentSelection.service_id).catch(() => []);
-    modelRows = models.map((m) => ({
-      ...m,
-      status: m.is_enabled ? "enabled" : "disabled",
-      active: currentSelection?.model_id === m.id ? "✓" : "",
-      supports_tools_disp: m.supports_tools ? "✓" : "",
-    }));
-    modelTable.setItems(modelRows);
-    if (modelEditingId) {
-      const fresh = modelRows.find(r => r.id === modelEditingId);
-      if (fresh) fillModelEditor(fresh);
-    }
-  }
-
-  function fillEditor(svc) {
-    setValue("svc_id",       svc?.id || "");
-    setValue("svc_name",     svc?.name || "");
-    setValue("svc_provider", svc?.provider || "");
-    setValue("svc_base",     svc?.base_url || "");
-    setValue("svc_auth",     svc?.auth_ref || "");
-    setValue("svc_timeout",  svc?.timeout_sec != null ? String(svc.timeout_sec) : "");
-    setValue("svc_extra",    prettyJSON(svc?.extra) || "");
-  }
-
-  function gatherEditorPayload() {
-    const name        = getValue("svc_name").trim();
-    const provider    = getValue("svc_provider").trim();
-    const base_url    = orNull(getValue("svc_base").trim());
-    const auth_ref    = orNull(getValue("svc_auth").trim());
-    const tval        = getValue("svc_timeout").trim();
-    const timeout_sec = tval ? Number(tval) : null;
-    const extraRaw    = getValue("svc_extra").trim();
-
-    let extra = {};
-    if (extraRaw) {
-      try { extra = JSON.parse(extraRaw); }
-      catch (e) {
-        alert("Extra must be valid JSON.");
-        return null;
-      }
-    }
-
-    return {
-      name,
-      provider,
-      base_url,
-      auth_ref,
-      timeout_sec,
-      extra
-    };
-  }
-
-  function openModelModal(model) {
-    modelEditingId = model?.id || null;
-    closeWindow("modal_model_editor");
-
-    spawnWindow({
-      id: "modal_model_editor",
-      title: modelEditingId ? "Edit LLM Model" : "New LLM Model",
-      window_type: MODAL_WIN_TYPE,
-      col: "right",
-      modal: true,
-      Elements: [
-        { type: "text_field",  id: "model_id",              label: "ID (read-only)", placeholder: "(auto)", disabled: true },
-        { type: "text_field",  id: "model_service",         label: "Service ID",      placeholder: "", disabled: true },
-        { type: "text_field",  id: "model_name",            label: "Name",           placeholder: "e.g., chat-gpt" },
-        { type: "text_field",  id: "model_model_name",      label: "Model Name",     placeholder: "provider-slug" },
-        { type: "text_field",  id: "model_modality",        label: "Modality",       placeholder: "chat" },
-        { type: "text_field",  id: "model_context_window",  label: "Context Window",  placeholder: "8192" },
-        { type: "text_field",  id: "model_supports_tools",  label: "Supports Tools",  placeholder: "false" },
-        { type: "text_area",   id: "model_extra",           label: "Extra (JSON)",   placeholder: "{}" },
-        { type: "submit_button", id: "model_save",   text: "Save" },
-        { type: "submit_button", id: "model_cancel", text: "Cancel" },
-      ],
-    });
-
-    fillModelEditor(model || null);
-
-    document.getElementById("model_save")?.addEventListener("click", async () => {
-      const payload = gatherModelPayload();
-      if (!payload) return;
-      try {
-        if (modelEditingId) {
-          await sdk.llm.updateModel(modelEditingId, payload);
-        } else {
-          await sdk.llm.createModel(payload);
-        }
-      } catch (e) {
-        alert("Save failed: " + (e.bodyText || e.message));
-      } finally {
-        closeWindow("modal_model_editor");
-        await refreshModels();
-      }
-    });
-
-    document.getElementById("model_cancel")?.addEventListener("click", () => closeWindow("modal_model_editor"));
-  }
-
-  function fillModelEditor(m) {
-    setValue("model_id",             m?.id || "");
-    setValue("model_service",       currentSelection?.service_id || "");
-    setValue("model_name",          m?.name || "");
-    setValue("model_model_name",    m?.model_name || "");
-    setValue("model_modality",      m?.modality || "");
-    setValue("model_context_window", m?.context_window != null ? String(m.context_window) : "");
-    setValue("model_supports_tools", m?.supports_tools ? "true" : "false");
-    setValue("model_extra",         prettyJSON(m?.extra) || "");
-  }
-
-  function gatherModelPayload() {
-    const service_id = currentSelection?.service_id;
-    if (!service_id) {
-      alert("Select a service first.");
-      return null;
-    }
-    const name          = getValue("model_name").trim();
-    const model_name    = getValue("model_model_name").trim();
-    const modality      = orNull(getValue("model_modality").trim());
-    const ctxVal        = getValue("model_context_window").trim();
-    const context_window= ctxVal ? Number(ctxVal) : null;
-    const toolsRaw      = getValue("model_supports_tools").trim().toLowerCase();
-    const supports_tools = ["true","1","yes","on"].includes(toolsRaw);
-    const extraRaw      = getValue("model_extra").trim();
-
-    let extra = {};
-    if (extraRaw) {
-      try { extra = JSON.parse(extraRaw); }
-      catch (e) {
-        alert("Extra must be valid JSON.");
-        return null;
-      }
-    }
-
-    return { service_id, name, model_name, modality, context_window, supports_tools, extra };
-  }
-
-  function getValue(id)   { const el = document.getElementById(id); return el ? el.value : ""; }
-  function setValue(id,v) { const el = document.getElementById(id); if (el) el.value = v; }
-  function orNull(v)      { return v === "" ? null : v; }
-  function prettyJSON(obj){
-    try { return obj && Object.keys(obj).length ? JSON.stringify(obj, null, 2) : ""; }
-    catch { return ""; }
-  }
-  function fmtDate(iso)   { try { return new Date(iso).toLocaleString(); } catch { return iso; } }
-
-  refreshServices();
 }
