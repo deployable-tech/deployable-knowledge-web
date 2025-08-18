@@ -35,6 +35,8 @@ export function initDocumentsWindow({ sdk, spawnWindow }) {
     slot.classList.add("list"); // just gives nice vertical rhythm
   table = createItemList({
     target: slot,
+    keyField: "id",
+    multi: true,
     columns: [
       { key: "title",    label: "Title" },
       { key: "segments", label: "Segments" },
@@ -42,17 +44,39 @@ export function initDocumentsWindow({ sdk, spawnWindow }) {
     ],
     items: [],
     actions: {
-      toggle: async (row) => {
-        INACTIVE_SOURCES.has(row.id) ? INACTIVE_SOURCES.delete(row.id) : INACTIVE_SOURCES.add(row.id);
-        await refreshDocs(sdk);
-      },
-      del: async (row) => {
-        await sdk.ingest.remove(row.id);
-        INACTIVE_SOURCES.delete(row.id);
-        await refreshDocs(sdk);
+      del: {
+        label: "Delete",
+        handler: async (row) => {
+          await sdk.ingest.remove(row.id);
+          INACTIVE_SOURCES.delete(row.id);
+          await refreshDocs(sdk);
+        }
       }
     },
-    getRowId: (row) => row.id
+    toolbar: {
+      primary: [
+        {
+          id: "deactivate",
+          label: "Deactivate",
+          when: (s) => s.selection.length,
+          handler: async () => {
+            const ids = table.getSelection().map((r) => r.id);
+            ids.forEach((id) => INACTIVE_SOURCES.add(id));
+            await refreshDocs(sdk);
+          }
+        },
+        {
+          id: "activate",
+          label: "Activate",
+          when: (s) => s.selection.length,
+          handler: async () => {
+            const ids = table.getSelection().map((r) => r.id);
+            ids.forEach((id) => INACTIVE_SOURCES.delete(id));
+            await refreshDocs(sdk);
+          }
+        }
+      ]
+    }
   });
 
   // 3) Wire refresh

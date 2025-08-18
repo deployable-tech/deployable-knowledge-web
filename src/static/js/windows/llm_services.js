@@ -42,6 +42,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
 
   svcTable = createItemList({
     target: slot,
+    keyField: "id",
     columns: [
       { key: "name",       label: "Name" },
       { key: "provider",   label: "Provider" },
@@ -50,8 +51,10 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       { key: "created_at", label: "Created" },
     ],
     items: [],
-      actions: {
-        select: async (row) => {
+    actions: {
+      select: {
+        label: "Select",
+        handler: async (row) => {
           currentSelection = { ...currentSelection, service_id: row.id, model_id: null };
           svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
           svcTable.setItems(svcRows);
@@ -63,23 +66,32 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
           }
           await refreshModels();
           if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
-        },
-        edit: (row) => openEditorModal(row),
-        del: async (row) => {
+        }
+      },
+      edit: {
+        label: "Edit",
+        handler: (row) => openEditorModal(row)
+      },
+      del: {
+        label: "Delete",
+        handler: async (row) => {
           const api = llmApi(sdk);
           try { await api.remove(row.id); }
           catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
           finally { await refreshServices(); }
-        },
-        toggleEnabled: async (row) => {
+        }
+      },
+      toggleEnabled: {
+        label: "Enable/Disable",
+        handler: async (row) => {
           const api = llmApi(sdk);
           try { await api.update(row.id, { is_enabled: !row.is_enabled }); }
           catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
           finally { await refreshServices(); }
-        },
-      },
-      getRowId: (row) => row.id,
-    });
+        }
+      }
+    }
+  });
 
   document.getElementById("svc_refresh")?.addEventListener("click", () => refreshServices());
   document.getElementById("svc_new")?.addEventListener("click", () => openEditorModal(null));
@@ -102,6 +114,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
 
   modelTable = createItemList({
     target: mslot,
+    keyField: "id",
     columns: [
       { key: "name",           label: "Name" },
       { key: "model_name",     label: "Model" },
@@ -112,8 +125,11 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       { key: "active",         label: "Active" },
     ],
     items: [],
-      actions: {
-        select: async (row) => {
+    actions: {
+      select: {
+        label: "Select",
+        when: () => !!currentSelection?.service_id,
+        handler: async (row) => {
           if (!currentSelection?.service_id) return;
           try {
             const user_id = currentSelection?.user_id || "local-user";
@@ -124,21 +140,30 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
             await refreshModels();
             if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
           }
-        },
-        edit: (row) => openModelModal(row),
-        del: async (row) => {
+        }
+      },
+      edit: {
+        label: "Edit",
+        handler: (row) => openModelModal(row)
+      },
+      del: {
+        label: "Delete",
+        handler: async (row) => {
           try { await sdk.llm.deleteModel(row.id); }
           catch (e) { alert("Delete failed: " + (e.bodyText || e.message)); }
           finally { await refreshModels(); }
-        },
-        toggleEnabled: async (row) => {
+        }
+      },
+      toggleEnabled: {
+        label: "Enable/Disable",
+        handler: async (row) => {
           try { await sdk.llm.updateModel(row.id, { is_enabled: !row.is_enabled }); }
           catch (e) { alert("Enable/disable failed: " + (e.bodyText || e.message)); }
           finally { await refreshModels(); }
-        },
-      },
-      getRowId: (row) => row.id,
-    });
+        }
+      }
+    }
+  });
 
   document.getElementById("model_refresh")?.addEventListener("click", () => refreshModels());
   document.getElementById("model_new")?.addEventListener("click", () => openModelModal(null));
