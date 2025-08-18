@@ -137,8 +137,50 @@ export class DKClient {
       updateService:  (sid, patch) => this._json("PUT", `/api/llm/services/${encodeURIComponent(sid)}`, { body: JSON.stringify(patch), json: true }),
       deleteService:  (sid) => this._json("DELETE", `/api/llm/services/${encodeURIComponent(sid)}`),
       listModels:     (service_id) => this._json("GET", `/api/llm/models${this._qs({ service_id })}`),
-      createModel:    (m) => this._json("POST", `/api/llm/models`, { body: JSON.stringify(m), json: true }),
-      updateModel:    (mid, patch) => this._json("PUT", `/api/llm/models/${encodeURIComponent(mid)}`, { body: JSON.stringify(patch), json: true }),
+      createModel:    (m = {}) => {
+        const payload = { ...m };
+        // map legacy keys to new backend fields
+        if (payload.model && !payload.model_name) {
+          payload.model_name = payload.model;
+          delete payload.model;
+        }
+        if (payload.mode && !payload.modality) {
+          payload.modality = payload.mode;
+          delete payload.mode;
+        }
+        if (payload.context && !payload.context_window) {
+          const num = Number(payload.context);
+          if (!Number.isNaN(num)) payload.context_window = num;
+          delete payload.context;
+        }
+        if (payload.tools != null && payload.supports_tools == null) {
+          payload.supports_tools = !!payload.tools;
+          delete payload.tools;
+        }
+        return this._json("POST", `/api/llm/models`, { body: JSON.stringify(payload), json: true });
+      },
+      updateModel:    (mid, patch = {}) => {
+        const payload = { ...patch };
+        // map legacy keys to new backend fields
+        if (payload.model && !payload.model_name) {
+          payload.model_name = payload.model;
+          delete payload.model;
+        }
+        if (payload.mode && !payload.modality) {
+          payload.modality = payload.mode;
+          delete payload.mode;
+        }
+        if (payload.context && !payload.context_window) {
+          const num = Number(payload.context);
+          if (!Number.isNaN(num)) payload.context_window = num;
+          delete payload.context;
+        }
+        if (payload.tools != null && payload.supports_tools == null) {
+          payload.supports_tools = !!payload.tools;
+          delete payload.tools;
+        }
+        return this._json("PUT", `/api/llm/models/${encodeURIComponent(mid)}`, { body: JSON.stringify(payload), json: true });
+      },
       deleteModel:    (mid) => this._json("DELETE", `/api/llm/models/${encodeURIComponent(mid)}`),
       getSelection:   () => this._json("GET", `/api/llm/selection`),
       updateSelection:(sel) => {

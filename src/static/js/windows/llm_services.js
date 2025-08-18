@@ -103,10 +103,13 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
   modelTable = createItemList({
     target: mslot,
     columns: [
-      { key: "name",   label: "Name" },
-      { key: "model",  label: "Model" },
-      { key: "status", label: "Status" },
-      { key: "active", label: "Active" },
+      { key: "name",           label: "Name" },
+      { key: "model_name",     label: "Model" },
+      { key: "modality",       label: "Modality" },
+      { key: "context_window", label: "Context" },
+      { key: "supports_tools_disp", label: "Tools" },
+      { key: "status",         label: "Status" },
+      { key: "active",         label: "Active" },
     ],
     items: [],
       actions: {
@@ -231,9 +234,9 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
     const models = await sdk.llm.listModels(currentSelection.service_id).catch(() => []);
     modelRows = models.map((m) => ({
       ...m,
-      model: m.model || m.model_name || m.modelId || m.model_id || "",
       status: m.is_enabled ? "enabled" : "disabled",
       active: currentSelection?.model_id === m.id ? "✓" : "",
+      supports_tools_disp: m.supports_tools ? "✓" : "",
     }));
     modelTable.setItems(modelRows);
     if (modelEditingId) {
@@ -291,12 +294,14 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       col: "right",
       modal: true,
       Elements: [
-        { type: "text_field",  id: "model_id",      label: "ID (read-only)", placeholder: "(auto)", disabled: true },
-        { type: "text_field",  id: "model_service", label: "Service ID",      placeholder: "", disabled: true },
-        { type: "text_field",  id: "model_name",    label: "Name",           placeholder: "e.g., chat-gpt" },
-        { type: "text_field",  id: "model_model",   label: "Model",          placeholder: "gpt-4" },
-        { type: "text_field",  id: "model_mode",    label: "Mode",           placeholder: "optional" },
-        { type: "text_area",   id: "model_extra",   label: "Extra (JSON)",   placeholder: "{}" },
+        { type: "text_field",  id: "model_id",              label: "ID (read-only)", placeholder: "(auto)", disabled: true },
+        { type: "text_field",  id: "model_service",         label: "Service ID",      placeholder: "", disabled: true },
+        { type: "text_field",  id: "model_name",            label: "Name",           placeholder: "e.g., chat-gpt" },
+        { type: "text_field",  id: "model_model_name",      label: "Model Name",     placeholder: "provider-slug" },
+        { type: "text_field",  id: "model_modality",        label: "Modality",       placeholder: "chat" },
+        { type: "text_field",  id: "model_context_window",  label: "Context Window",  placeholder: "8192" },
+        { type: "text_field",  id: "model_supports_tools",  label: "Supports Tools",  placeholder: "false" },
+        { type: "text_area",   id: "model_extra",           label: "Extra (JSON)",   placeholder: "{}" },
         { type: "submit_button", id: "model_save",   text: "Save" },
         { type: "submit_button", id: "model_cancel", text: "Cancel" },
       ],
@@ -325,12 +330,14 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
   }
 
   function fillModelEditor(m) {
-    setValue("model_id",      m?.id || "");
-    setValue("model_service", currentSelection?.service_id || "");
-    setValue("model_name",    m?.name || "");
-    setValue("model_model",   m?.model || m?.model_name || m?.modelId || m?.model_id || "");
-    setValue("model_mode",    m?.mode || "");
-    setValue("model_extra",   prettyJSON(m?.extra) || "");
+    setValue("model_id",             m?.id || "");
+    setValue("model_service",       currentSelection?.service_id || "");
+    setValue("model_name",          m?.name || "");
+    setValue("model_model_name",    m?.model_name || "");
+    setValue("model_modality",      m?.modality || "");
+    setValue("model_context_window", m?.context_window != null ? String(m.context_window) : "");
+    setValue("model_supports_tools", m?.supports_tools ? "true" : "false");
+    setValue("model_extra",         prettyJSON(m?.extra) || "");
   }
 
   function gatherModelPayload() {
@@ -339,10 +346,14 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       alert("Select a service first.");
       return null;
     }
-    const name      = getValue("model_name").trim();
-    const modelRef  = getValue("model_model").trim();
-    const mode      = orNull(getValue("model_mode").trim());
-    const extraRaw  = getValue("model_extra").trim();
+    const name          = getValue("model_name").trim();
+    const model_name    = getValue("model_model_name").trim();
+    const modality      = orNull(getValue("model_modality").trim());
+    const ctxVal        = getValue("model_context_window").trim();
+    const context_window= ctxVal ? Number(ctxVal) : null;
+    const toolsRaw      = getValue("model_supports_tools").trim().toLowerCase();
+    const supports_tools = ["true","1","yes","on"].includes(toolsRaw);
+    const extraRaw      = getValue("model_extra").trim();
 
     let extra = {};
     if (extraRaw) {
@@ -353,7 +364,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       }
     }
 
-    return { service_id, name, model: modelRef, mode, extra };
+    return { service_id, name, model_name, modality, context_window, supports_tools, extra };
   }
 
   function getValue(id)   { const el = document.getElementById(id); return el ? el.value : ""; }
