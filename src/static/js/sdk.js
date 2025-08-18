@@ -141,7 +141,10 @@ export class DKClient {
       updateModel:    (mid, patch) => this._json("PUT", `/api/llm/models/${encodeURIComponent(mid)}`, { body: JSON.stringify(patch), json: true }),
       deleteModel:    (mid) => this._json("DELETE", `/api/llm/models/${encodeURIComponent(mid)}`),
       getSelection:   () => this._json("GET", `/api/llm/selection`),
-      updateSelection:(sel) => this._json("PUT", `/api/llm/selection`, { body: JSON.stringify(sel), json: true })
+      updateSelection:(sel) => {
+        const clean = Object.fromEntries(Object.entries(sel).filter(([, v]) => v !== null && v !== undefined));
+        return this._json("PUT", `/api/llm/selection`, { body: JSON.stringify(clean), json: true });
+      }
     };
 
     this.settings = {

@@ -55,7 +55,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
         currentSelection = { service_id: row.id, model_id: null };
         svcRows = svcRows.map((s) => ({ ...s, active: s.id === row.id ? "✓" : "" }));
         svcTable.setItems(svcRows);
-        try { currentSelection = await sdk.llm.updateSelection(currentSelection); }
+        try { currentSelection = await sdk.llm.updateSelection({ service_id: row.id }); }
         catch (e) { alert("Selection failed: " + (e.bodyText || e.message)); }
         await refreshModels();
         if (typeof onSelectionChange === "function") onSelectionChange(currentSelection);
