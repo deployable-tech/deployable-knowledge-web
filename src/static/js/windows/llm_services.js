@@ -338,10 +338,10 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       alert("Select a service first.");
       return null;
     }
-    const name     = getValue("model_name").trim();
-    const model    = getValue("model_model").trim();
-    const mode     = orNull(getValue("model_mode").trim());
-    const extraRaw = getValue("model_extra").trim();
+    const name      = getValue("model_name").trim();
+    const modelRef  = getValue("model_model").trim();
+    const mode      = orNull(getValue("model_mode").trim());
+    const extraRaw  = getValue("model_extra").trim();
 
     let extra = {};
     if (extraRaw) {
@@ -352,7 +352,7 @@ export function initLLMServicesWindows({ sdk, spawnWindow, initialSelection = nu
       }
     }
 
-    return { service_id, name, model, mode, extra };
+    return { service_id, name, model: modelRef, mode, extra };
   }
 
   function getValue(id)   { const el = document.getElementById(id); return el ? el.value : ""; }
