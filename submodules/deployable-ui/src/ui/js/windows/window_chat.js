@@ -82,7 +82,7 @@ export function render(config = {}, winId) {
 
     if (content instanceof HTMLElement) {
       node.appendChild(content);
-    } else if (typeof content === "string" && role === "assistant") {
+    } else if (typeof content === "string") {
       // backend responses may include HTML (e.g., <p> tags). Render it.
       node.innerHTML = content;
     } else {
