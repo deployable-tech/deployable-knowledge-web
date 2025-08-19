@@ -2,8 +2,8 @@ import { renderServiceCard } from './llm_services_item.js';
 import { renderModelCard } from './llm_service_model_item.js';
 
 export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
-  const { loadServices, refreshSel, svcSel, modelSel, setSelection, selOut, serviceCards, modelCards } = elements;
-  const { ensureSDK, setBusy, toastOK, toastERR } = helpers;
+  const { loadServices, refreshSel, svcSel, modelSel, setSelection, serviceCards, modelCards } = elements;
+  const { ensureSDK, setBusy } = helpers;
 
   async function populateModels() {
     try {
@@ -20,7 +20,7 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
         modelSel.appendChild(opt);
       }
     } catch (e) {
-      toastERR(selOut, e);
+      console.error(e);
     }
   }
 
@@ -76,7 +76,7 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
         cards.set(s.id, host);
       }
     } catch (e) {
-      toastERR(selOut, e);
+      console.error(e);
     }
   });
 
@@ -92,9 +92,9 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
         model_id: modelSel.value || undefined
       };
       const res = await sdk.llm.updateSelection(payload);
-      toastOK(selOut, res);
+      console.log(res);
     } catch (e) {
-      toastERR(selOut, e);
+      console.error(e);
     }
   });
 
@@ -103,9 +103,9 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
       ensureSDK();
       const sdk = getSDK();
       const sel = await sdk.llm.getSelection();
-      toastOK(selOut, sel);
+      console.log(sel);
     } catch (e) {
-      toastERR(selOut, e);
+      console.error(e);
     }
   });
 }

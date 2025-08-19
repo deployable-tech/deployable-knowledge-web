@@ -3,10 +3,15 @@ import { renderWithModes } from '/static/ui/js/render.js';
 export function createDocumentSchema({ onSegments } = {}) {
   return {
     modes: {
-      default: {
+      mini: {
         elements: {
-          source: { type: 'text', format: 'title' },
-          size:   { type: 'number' }
+          source: { type: 'text', format: 'title' }
+        }
+      },
+      default: {
+        extends: 'mini',
+        elements: {
+          size: { type: 'number' }
         },
         order: ['size'],
         actions: [
@@ -22,7 +27,16 @@ export function createDocumentSchema({ onSegments } = {}) {
 }
 
 export function renderDocumentItem(doc, deps = {}, opts = {}) {
-  const data = (typeof doc === 'string') ? { source: doc } : doc;
+  const data = (typeof doc === 'string') ? { source: doc } : (doc || {});
   const schema = createDocumentSchema(deps);
-  return renderWithModes(data, schema, { mode: opts.mode || 'default' });
+  const host = renderWithModes(data, schema, { mode: opts.mode ?? 'mini' });
+
+  // click-to-toggle unless explicitly disabled
+  if (opts.clickToggle !== false && host?.getMode && host?.setMode) {
+    host.addEventListener('click', (e) => {
+      if (e.target.closest('button,[data-action]')) return;
+      host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
+    });
+  }
+  return host;
 }

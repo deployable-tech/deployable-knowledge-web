@@ -15,9 +15,11 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       docs.innerHTML = '';
       (res || []).forEach(d => {
         const doc = (typeof d === 'string') ? { source: d } : d;
-        const host = renderDocumentItem(doc, {
-          onSegments: () => { segSource.value = doc.source || ''; }
-        });
+        const host = renderDocumentItem(
+          doc,
+          { onSegments: () => { segSource.value = doc.source || ''; } },
+          { mode: 'mini' }
+        );
         docs.appendChild(host);
       });
     } catch (e) {
@@ -36,7 +38,7 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       const res = await sdk.segments.list({ source: src || undefined });
       segs.innerHTML = '';
       (res || []).forEach(s => {
-        const host = renderSegmentItem(s, { sdk, segView });
+        const host = renderSegmentItem(s, { sdk, segView }, { mode: 'mini' });
         segs.appendChild(host);
       });
     } catch (e) {
