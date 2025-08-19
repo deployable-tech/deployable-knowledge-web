@@ -163,7 +163,7 @@ setupChatUI({
   ensureSession,
   getSessionId: () => sessionId,
   elements: { persona, templateId, chatTopK, inactive, msg, send, stream, meta, chatOut, userId, svcSel, modelSel },
-  helpers: { ensureSDK, setBusy, toastERR, safeParse }
+  helpers: { ensureSDK, setBusy, safeParse }
 });
 
 // ---- services/models ----

@@ -55,6 +55,18 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     wrap.appendChild(bar);
     wrap.appendChild(body);
 
+    // bounds helper
+    const clamp = () => {
+      const maxX = container.clientWidth - wrap.offsetWidth;
+      const maxY = container.clientHeight - wrap.offsetHeight;
+      const x = Math.min(Math.max(wrap.offsetLeft, 0), Math.max(maxX, 0));
+      const y = Math.min(Math.max(wrap.offsetTop, 0), Math.max(maxY, 0));
+      wrap.style.left = `${x}px`;
+      wrap.style.top = `${y}px`;
+      wrap.style.width = `${Math.min(wrap.offsetWidth, container.clientWidth)}px`;
+      wrap.style.height = `${Math.min(wrap.offsetHeight, container.clientHeight)}px`;
+    };
+
     // drag
     bar.addEventListener('mousedown', (e) => {
       bringToFront(wrap);
@@ -63,9 +75,13 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
       function onMove(ev) {
         wrap.style.left = `${ev.clientX - startX}px`;
         wrap.style.top = `${ev.clientY - startY}px`;
+        clamp();
       }
       document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
+      document.addEventListener('mouseup', () => {
+        document.removeEventListener('mousemove', onMove);
+        clamp();
+      }, { once: true });
     });
 
     bar.addEventListener('dblclick', () => {
@@ -85,8 +101,13 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     wrap.style.overflow = 'hidden';
     body.style.overflow = 'auto';
 
+    // keep within bounds on resize
+    new ResizeObserver(clamp).observe(wrap);
+
     registry.set(id, wrap);
     container.appendChild(wrap);
+
+    clamp();
 
     if (menu) {
       const opt = document.createElement('option');

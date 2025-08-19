@@ -74,7 +74,7 @@
 
       <section id="win-chat" data-win="chat" data-title="Chat">
         <h2>Chat</h2>
-        <div class="grid-2">
+        <div class="grid-2 chat-ctrls">
           <div>
             <label>Persona</label>
             <input id="persona" placeholder="optional persona tag" />
@@ -83,8 +83,6 @@
             <label>Template ID</label>
             <input id="templateId" value="rag_chat" />
           </div>
-        </div>
-        <div class="grid-2">
           <div>
             <label>Top K</label>
             <input id="chatTopK" type="number" value="8" />
@@ -94,14 +92,15 @@
             <input id="inactive" placeholder='["obj_1","obj_2"]' />
           </div>
         </div>
-        <label>Message</label>
-        <textarea id="msg" placeholder="Ask your system something grounded…"></textarea>
-        <div class="row">
-          <button id="send">Send (JSON)</button>
-          <button id="stream">Stream (SSE)</button>
-          <span id="meta" class="subtle mono"></span>
+        <div id="chatOut" class="chat-history"></div>
+        <div class="chat-input">
+          <textarea id="msg" placeholder="Ask your system something grounded…"></textarea>
+          <div class="row">
+            <button id="send">Send</button>
+            <button id="stream">Stream</button>
+            <span id="meta" class="subtle mono"></span>
+          </div>
         </div>
-        <pre id="chatOut" class="mono" style="min-height:140px;"></pre>
       </section>
 
       <section id="win-ingest" data-win="ingest" data-title="Ingest">
