@@ -14,8 +14,9 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       docCount.textContent = `${res?.length || 0} docs`;
       docs.innerHTML = '';
       (res || []).forEach(d => {
-        const host = renderDocumentItem(d, {
-          onSegments: () => { segSource.value = d.source || ''; }
+        const doc = (typeof d === 'string') ? { source: d } : d;
+        const host = renderDocumentItem(doc, {
+          onSegments: () => { segSource.value = doc.source || ''; }
         });
         docs.appendChild(host);
       });

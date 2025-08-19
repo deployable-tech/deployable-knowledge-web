@@ -22,6 +22,7 @@ export function createDocumentSchema({ onSegments } = {}) {
 }
 
 export function renderDocumentItem(doc, deps = {}, opts = {}) {
+  const data = (typeof doc === 'string') ? { source: doc } : doc;
   const schema = createDocumentSchema(deps);
-  return renderWithModes(doc, schema, { mode: opts.mode || 'default' });
+  return renderWithModes(data, schema, { mode: opts.mode || 'default' });
 }
