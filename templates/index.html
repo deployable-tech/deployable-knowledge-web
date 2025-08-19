@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DKClient Demo — bare metal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background:#0c0f13; color:#eaeef3; }
+    header { padding:14px 18px; border-bottom:1px solid #1b232e; display:flex; gap:12px; align-items:center; }
+    header input, header button, header select { background:#121821; color:#eaeef3; border:1px solid #2a3546; border-radius:6px; padding:8px 10px; }
+    header button { cursor:pointer; }
+    main { display:grid; grid-template-columns: 320px 1fr; gap:16px; padding:16px; }
+    section { background:#0f141c; border:1px solid #1b232e; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px; }
+    h2 { font-size:14px; font-weight:700; margin:0 0 4px 0; color:#b9c8dc; text-transform:uppercase; letter-spacing:0.06em; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    label { font-size:12px; color:#99a9bf; }
+    input, select, textarea { background:#0c1118; color:#eaeef3; border:1px solid #243042; border-radius:6px; padding:8px 10px; width:100%; }
+    textarea { min-height:84px; resize:vertical; }
+    button { background:#1d2736; color:#eaeef3; border:1px solid #2a3546; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button:disabled { opacity:0.5; cursor:not-allowed; }
+    pre, code { background:#0b0f15; border:1px solid #1c2736; border-radius:8px; padding:8px; overflow:auto; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .pill { padding:2px 8px; border:1px solid #2a3546; border-radius:999px; font-size:11px; color:#b9c8dc; }
+    .spacer { height:8px; }
+    .list { max-height:220px; overflow:auto; border:1px solid #1c2736; border-radius:8px; }
+    .item { padding:8px 10px; border-bottom:1px solid #121821; display:flex; justify-content:space-between; gap:8px; }
+    .item:last-child { border-bottom:0; }
+    .subtle { color:#9ab; font-size:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .ok { color:#69f0ae; }
+    .err { color:#ff867c; }
+    footer { padding:12px 16px; border-top:1px solid #1b232e; font-size:12px; color:#8aa0b7; }
+    /* toss into your page */
+.obj-card{border:1px solid #1b232e;border-radius:10px;background:#0f141c}
+.obj-card__head{padding:10px 12px;border-bottom:1px solid #1b232e}
+.obj-card__title{margin:0;font-size:16px;color:#cfe3ff}
+.obj-card__body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.obj-card__row{display:grid;grid-template-columns:180px 1fr;gap:8px;align-items:start}
+.obj-card__label{color:#9cb2c9;font-size:12px}
+.obj-card__value{color:#eaeef3;font-size:14px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pill{padding:2px 8px;border:1px solid #2a3546;border-radius:999px;font-size:11px}
+.pill--yes{border-color:#115e3b;background:#0d1f19;color:#69f0ae}
+.pill--no{border-color:#5e1111;background:#1f0d0d;color:#ff867c}
+.block{display:block}
+.inline{display:inline}
+.in{background:#0c1118;color:#eaeef3;border:1px solid #243042;border-radius:6px;padding:6px 8px}
+.in-text,.in-number{width:100%}
+.in-textarea{width:100%;min-height:96px;resize:vertical}
+.in-select{width:100%}
+.in-range{width:100%}
+.range-wrap{display:flex;gap:10px;align-items:center}
+.range-readout{min-width:44px;text-align:right}
+.combo-wrap{display:block}
+.obj-card__actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.obj-card__foot { padding:10px 12px; border-top:1px solid #1b232e; }
+.obj-card--selected { border-color:#3557ff; box-shadow: 0 0 0 1px #3557ff inset; }
+
+.btn { padding:6px 10px; border:1px solid #2a3546; border-radius:8px; background:#1d2736; color:#eaeef3; cursor:pointer; }
+.btn--primary { border-color:#3557ff; }
+.btn--danger  { border-color:#b33; }
+.btn--ghost   { background:transparent; }
+.obj-card--selected { border-color:#3557ff; box-shadow:0 0 0 1px #3557ff inset; }
+
+
+  </style>
+</head>
+<body>
+  <header>
+    <strong>DKClient Demo</strong>
+    <span class="pill">browser only</span>
+    <input id="base" size="42" />
+    <button id="init">Init SDK</button>
+    <button id="prime">Prime User Session</button>
+    <button id="ensure">Ensure Session</button>
+    <span id="sid" class="mono subtle"></span>
+  </header>
+
+  <main>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <section>
+        <h2>LLM Service & Model</h2>
+        <div class="row">
+          <button id="loadServices">Load Services</button>
+          <button id="refreshSelection">Get Selection</button>
+        </div>
+        <div class="row">
+          <label style="min-width:80px;">Service</label>
+          <select id="svc"></select>
+        </div>
+        <div class="row">
+          <label style="min-width:80px;">Model</label>
+          <select id="model"></select>
+        </div>
+        <div class="row">
+          <button id="setSelection">Update Selection</button>
+        </div>
+        <div id="serviceLst"></div>
+        <pre id="selOut" class="mono" style="max-height:180px;"></pre>
+      </section>
+
+      <section>
+        <h2>Search</h2>
+        <div class="row">
+          <input id="q" placeholder="query…" />
+          <input id="topK" type="number" value="5" style="max-width:80px;" />
+          <button id="doSearch">Run</button>
+        </div>
+        <pre id="searchOut" class="mono" style="max-height:220px;"></pre>
+      </section>
+
+      <section>
+        <h2>Documents & Segments</h2>
+        <div class="row">
+          <button id="listDocs">List Documents</button>
+          <span id="docCount" class="subtle"></span>
+        </div>
+        <div id="docs" class="list"></div>
+        <div class="spacer"></div>
+        <div class="row">
+          <label style="min-width:80px;">Segments of</label>
+          <input id="segSource" placeholder="source.txt (auto-fills on click)" />
+          <button id="listSegs">List Segments</button>
+        </div>
+        <div id="segs" class="list"></div>
+        <pre id="segView" class="mono" style="max-height:160px;"></pre>
+      </section>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <section>
+        <h2>Chat</h2>
+        <div class="grid-2">
+          <div>
+            <label>Persona</label>
+            <input id="persona" placeholder="optional persona tag" />
+          </div>
+          <div>
+            <label>Template ID</label>
+            <input id="templateId" value="rag_chat" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Top K</label>
+            <input id="chatTopK" type="number" value="8" />
+          </div>
+          <div>
+            <label>Inactive (JSON array of object_ids)</label>
+            <input id="inactive" placeholder='["obj_1","obj_2"]' />
+          </div>
+        </div>
+        <label>Message</label>
+        <textarea id="msg" placeholder="Ask your system something grounded…"></textarea>
+        <div class="row">
+          <button id="send">Send (JSON)</button>
+          <button id="stream">Stream (SSE)</button>
+          <span id="meta" class="subtle mono"></span>
+        </div>
+        <pre id="chatOut" class="mono" style="min-height:140px;"></pre>
+      </section>
+
+      <section>
+        <h2>Ingest</h2>
+        <div class="row">
+          <input id="files" type="file" multiple />
+          <button id="upload">Upload</button>
+          <button id="ingestAll">Ingest All</button>
+        </div>
+        <div class="row">
+          <input id="removeSource" placeholder="source name to remove…" />
+          <button id="remove">Remove Source</button>
+          <button id="clearDb">Clear DB</button>
+        </div>
+        <pre id="ingOut" class="mono" style="max-height:160px;"></pre>
+      </section>
+
+      <section>
+        <h2>Templates & Settings</h2>
+        <div class="row">
+          <button id="tplList">List Templates</button>
+          <input id="tplId" placeholder="template id…" />
+          <button id="tplGet">Get</button>
+        </div>
+        <div class="row">
+          <input id="userId" value="local-user" />
+          <button id="getSettings">Get Settings</button>
+        </div>
+        <pre id="miscOut" class="mono" style="max-height:200px;"></pre>
+      </section>
+    </div>
+<div id="test"></div>
+<div id="models"></div>
+
+</main>
+
+  <footer>
+    If your API runs on a different port, change the base URL. Cookie priming uses <code>/begin</code>.
+  </footer>
+
+  <div id="mount"></div>
+
+  <script type="module" src="/static/app/js/main.js"></script>
+
+</body>
+</html>
