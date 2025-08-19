@@ -3,14 +3,19 @@ import { renderWithModes } from '/static/ui/js/render.js';
 export function createSegmentSchema({ sdk, segView } = {}) {
   return {
     modes: {
+      mini: {
+        elements: {
+          preview: { type: 'text', format: 'title' }
+        }
+      },
       default: {
+        extends: 'mini',
         elements: {
           source:        { type: 'text' },
           segment_index: { type: 'number' },
-          priority:      { type: 'number' },
-          preview:       { type: 'text' }
+          priority:      { type: 'number' }
         },
-        order: ['segment_index', 'priority', 'preview'],
+        order: ['segment_index', 'priority'],
         actions: [
           {
             id: 'open',
@@ -37,5 +42,10 @@ export function createSegmentSchema({ sdk, segView } = {}) {
 
 export function renderSegmentItem(seg, deps = {}, opts = {}) {
   const schema = createSegmentSchema(deps);
-  return renderWithModes(seg, schema, { mode: opts.mode || 'default' });
+  const host = renderWithModes(seg, schema, { mode: opts.mode || 'mini' });
+  host.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
+  });
+  return host;
 }

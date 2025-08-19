@@ -3,9 +3,14 @@ import { renderWithModes } from '/static/ui/js/render.js';
 export function createDocumentSchema({ onSegments } = {}) {
   return {
     modes: {
-      default: {
+      mini: {
         elements: {
-          source: { type: 'text', format: 'title' },
+          source: { type: 'text', format: 'title' }
+        }
+      },
+      default: {
+        extends: 'mini',
+        elements: {
           size:   { type: 'number' }
         },
         order: ['size'],
@@ -23,5 +28,10 @@ export function createDocumentSchema({ onSegments } = {}) {
 
 export function renderDocumentItem(doc, deps = {}, opts = {}) {
   const schema = createDocumentSchema(deps);
-  return renderWithModes(doc, schema, { mode: opts.mode || 'default' });
+  const host = renderWithModes(doc, schema, { mode: opts.mode || 'mini' });
+  host.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
+  });
+  return host;
 }

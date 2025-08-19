@@ -16,7 +16,7 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       (res || []).forEach(d => {
         const host = renderDocumentItem(d, {
           onSegments: () => { segSource.value = d.source || ''; }
-        });
+        }, { mode: 'mini' });
         docs.appendChild(host);
       });
     } catch (e) {
@@ -35,7 +35,7 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       const res = await sdk.segments.list({ source: src || undefined });
       segs.innerHTML = '';
       (res || []).forEach(s => {
-        const host = renderSegmentItem(s, { sdk, segView });
+        const host = renderSegmentItem(s, { sdk, segView }, { mode: 'mini' });
         segs.appendChild(host);
       });
     } catch (e) {

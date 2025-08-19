@@ -143,11 +143,13 @@ export function renderWithModes(data, spec, { mode = 'default', ...opts } = {}) 
       setMode: (m) => { mode = m; draw(); }
     });
     host.appendChild(node);
+    host.dataset.mode = mode;
   };
 
   draw();
 
   host.setMode   = (m) => { mode = m; draw(); };
+  host.getMode   = () => mode;
   host.getValues = () => node.__controller.getValues();
   host.onChange  = (fn) => node.__controller.onChange(fn);
 
