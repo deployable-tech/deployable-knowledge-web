@@ -11,7 +11,7 @@ export function createDocumentSchema({ onSegments } = {}) {
       default: {
         extends: 'mini',
         elements: {
-          size:   { type: 'number' }
+          size: { type: 'number' }
         },
         order: ['size'],
         actions: [
@@ -27,11 +27,16 @@ export function createDocumentSchema({ onSegments } = {}) {
 }
 
 export function renderDocumentItem(doc, deps = {}, opts = {}) {
+  const data = (typeof doc === 'string') ? { source: doc } : (doc || {});
   const schema = createDocumentSchema(deps);
-  const host = renderWithModes(doc, schema, { mode: opts.mode || 'mini' });
-  host.addEventListener('click', (e) => {
-    if (e.target.closest('button')) return;
-    host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
-  });
+  const host = renderWithModes(data, schema, { mode: opts.mode ?? 'mini' });
+
+  // click-to-toggle unless explicitly disabled
+  if (opts.clickToggle !== false && host?.getMode && host?.setMode) {
+    host.addEventListener('click', (e) => {
+      if (e.target.closest('button,[data-action]')) return;
+      host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
+    });
+  }
   return host;
 }
