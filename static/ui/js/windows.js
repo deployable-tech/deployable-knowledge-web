@@ -82,7 +82,8 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     });
 
     wrap.style.resize = 'both';
-    wrap.style.overflow = 'auto';
+    wrap.style.overflow = 'hidden';
+    body.style.overflow = 'auto';
 
     registry.set(id, wrap);
     container.appendChild(wrap);

@@ -57,9 +57,34 @@ footer { padding:12px 16px; border-top:1px solid #1b232e; font-size:12px; color:
 .obj-card--selected { border-color:#3557ff; box-shadow:0 0 0 1px #3557ff inset; }
 
 /* window system */
-.window { position:absolute; background:#0f141c; border:1px solid #1b232e; border-radius:10px; display:flex; flex-direction:column; resize:both; overflow:auto; }
-.window__titlebar { background:#1b232e; padding:4px 8px; cursor:move; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+.window {
+  position:absolute;
+  background:#0f141c;
+  border:1px solid #1b232e;
+  border-radius:10px;
+  display:flex;
+  flex-direction:column;
+  resize:both;
+  overflow:hidden;
+}
+.window__titlebar {
+  background:#1b232e;
+  padding:4px 8px;
+  cursor:move;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  user-select:none;
+}
 .window__controls button { background:transparent; border:none; color:#eaeef3; cursor:pointer; padding:0 4px; }
-.window__body { padding:12px; display:flex; flex-direction:column; gap:10px; }
+.window__body {
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  flex:1;
+  overflow:auto;
+  min-height:0;
+}
 .window--docked { top:0 !important; left:0 !important; }
 
