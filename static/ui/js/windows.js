@@ -59,12 +59,25 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     const clamp = () => {
       const maxX = container.clientWidth - wrap.offsetWidth;
       const maxY = container.clientHeight - wrap.offsetHeight;
-      const x = Math.min(Math.max(wrap.offsetLeft, 0), Math.max(maxX, 0));
-      const y = Math.min(Math.max(wrap.offsetTop, 0), Math.max(maxY, 0));
-      wrap.style.left = `${x}px`;
-      wrap.style.top = `${y}px`;
-      wrap.style.width = `${Math.min(wrap.offsetWidth, container.clientWidth)}px`;
-      wrap.style.height = `${Math.min(wrap.offsetHeight, container.clientHeight)}px`;
+
+      if (wrap.offsetLeft < 0) {
+        wrap.style.left = '0px';
+      } else if (wrap.offsetLeft > maxX) {
+        wrap.style.left = `${Math.max(maxX, 0)}px`;
+      }
+
+      if (wrap.offsetTop < 0) {
+        wrap.style.top = '0px';
+      } else if (wrap.offsetTop > maxY) {
+        wrap.style.top = `${Math.max(maxY, 0)}px`;
+      }
+
+      if (wrap.offsetWidth > container.clientWidth) {
+        wrap.style.width = `${container.clientWidth}px`;
+      }
+      if (wrap.offsetHeight > container.clientHeight) {
+        wrap.style.height = `${container.clientHeight}px`;
+      }
     };
 
     // drag
