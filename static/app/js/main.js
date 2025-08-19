@@ -2,6 +2,7 @@ import { DKClient } from './sdk.js';
 import { setupLLMServiceUI } from './llm_service.js';
 import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
+import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
 const j = (o) => JSON.stringify(o, null, 2);
@@ -60,6 +61,8 @@ const tplGet = $('tplGet');
 const userId = $('userId');
 const getSettings = $('getSettings');
 const miscOut = $('miscOut');
+
+initWindows({ menuId: 'windowMenu', containerId: 'desktop' });
 
 // ---- state ----
 let sdk = null;
