@@ -13,6 +13,7 @@ textarea { min-height:84px; resize:vertical; }
 button { background:#1d2736; color:#eaeef3; border:1px solid #2a3546; border-radius:8px; padding:8px 12px; cursor:pointer; }
 button:disabled { opacity:0.5; cursor:not-allowed; }
 pre, code { background:#0b0f15; border:1px solid #1c2736; border-radius:8px; padding:8px; overflow:auto; }
+#chatOut { white-space:pre-wrap; word-break:break-word; }
 .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
 .pill { padding:2px 8px; border:1px solid #2a3546; border-radius:999px; font-size:11px; color:#b9c8dc; }
 .spacer { height:8px; }

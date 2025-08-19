@@ -20,7 +20,6 @@ const refreshSel   = $('refreshSelection');
 const svcSel = $('svc');
 const modelSel = $('model');
 const setSelection = $('setSelection');
-const selOut = $('selOut');
 const serviceCards = $('serviceCards');
 const modelCards = $('modelCards');
 
@@ -103,9 +102,9 @@ initBtn.addEventListener('click', () => {
   try {
     sdk = new DKClient({ baseUrl: base.value });
     window.sdk = sdk;
-    selOut.textContent = 'SDK ready.';
+    console.log('SDK ready.');
   } catch (e) {
-    toastERR(selOut, e);
+    console.error(e);
   }
 });
 
@@ -114,9 +113,9 @@ prime.addEventListener('click', async () => {
     ensureSDK();
     setBusy(prime, true);
     await sdk.auth.beginUser();
-    toastOK(selOut, 'User session primed via /begin');
+    console.log('User session primed via /begin');
   } catch (e) {
-    toastERR(selOut, e);
+    console.error(e);
   } finally {
     setBusy(prime, false);
   }
@@ -125,9 +124,9 @@ ensure.addEventListener('click', async () => {
   try {
     setBusy(ensure, true);
     await ensureSession();
-    toastOK(selOut, { session_id: sessionId });
+    console.log({ session_id: sessionId });
   } catch (e) {
-    toastERR(selOut, e);
+    console.error(e);
   } finally {
     setBusy(ensure, false);
   }
@@ -171,8 +170,8 @@ setupChatUI({
 setupLLMServiceUI({
   getSDK: () => sdk,
   userIdEl: userId,
-  elements: { loadServices, refreshSel, svcSel, modelSel, setSelection, selOut, serviceCards, modelCards },
-  helpers: { ensureSDK, setBusy, toastOK, toastERR }
+  elements: { loadServices, refreshSel, svcSel, modelSel, setSelection, serviceCards, modelCards },
+  helpers: { ensureSDK, setBusy }
 });
 
 // ---- ingest ----
@@ -267,6 +266,13 @@ getSettings.addEventListener('click', async () => {
     const res = await sdk.sessions.ensure();
     sessionId = res.session_id;
     sidOut.textContent = `session_id: ${sessionId}`;
+
+    // auto-update windows on boot
+    try { loadServices.click(); } catch {}
+    try { refreshSel.click(); } catch {}
+    try { listDocs.click(); } catch {}
+    try { tplList.click(); } catch {}
+    try { getSettings.click(); } catch {}
   } catch (e) {
     // non-fatal
   }
