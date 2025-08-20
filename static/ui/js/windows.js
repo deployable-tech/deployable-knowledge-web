@@ -45,6 +45,36 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     return el;
   }
 
+  function hideWindow(id) {
+    const w = registry.get(id);
+    if (w) {
+      w.style.display = 'none';
+      try {
+        const st = {
+          left: w.style.left,
+          top: w.style.top,
+          width: w.style.width,
+          height: w.style.height,
+          hidden: true
+        };
+        localStorage.setItem(`win:${id}`, JSON.stringify(st));
+      } catch {}
+    }
+  }
+
+  function showWindow(id) {
+    const w = registry.get(id);
+    if (w) {
+      w.style.display = '';
+      bringToFront(w);
+      try {
+        const st = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
+        st.hidden = false;
+        localStorage.setItem(`win:${id}`, JSON.stringify(st));
+      } catch {}
+    }
+  }
+
   function buildWindow(def, idx) {
     const id = def.id || `win-${idx}`;
     const title = def.title || id;
@@ -137,14 +167,8 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     wrap.addEventListener('mousedown', () => bringToFront(wrap));
 
-    minBtn.addEventListener('click', () => {
-      wrap.style.display = 'none';
-      saveState();
-    });
-    closeBtn.addEventListener('click', () => {
-      wrap.style.display = 'none';
-      saveState();
-    });
+    minBtn.addEventListener('click', () => hideWindow(id));
+    closeBtn.addEventListener('click', () => hideWindow(id));
 
     wrap.style.resize = 'both';
     wrap.style.overflow = 'hidden';
@@ -165,10 +189,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
 
     wrap.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        wrap.style.display = 'none';
-        saveState();
-      }
+      if (e.key === 'Escape') hideWindow(id);
     });
 
     registry.set(id, wrap);
@@ -180,11 +201,8 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       const li = document.createElement('li');
       li.textContent = title;
       li.addEventListener('click', () => {
-        // Show window again and persist visible state
-        wrap.style.display = '';
-        bringToFront(wrap);
+        showWindow(id);
         menu.classList.remove('visible');
-        saveState();
       });
       menu.appendChild(li);
     }
@@ -199,19 +217,6 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     });
     document.addEventListener('click', () => menu.classList.remove('visible'));
   }
-
-  const showWindow = (id) => {
-    const w = registry.get(id);
-    if (w) {
-      w.style.display = '';
-      bringToFront(w);
-      try {
-        const st = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
-        st.hidden = false;
-        localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch {}
-    }
-  };
 
   return { windows: registry, elements, showWindow };
 }

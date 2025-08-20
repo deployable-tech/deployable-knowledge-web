@@ -67,6 +67,7 @@ function openChat() {
   showWindow('chat');
 }
 window.openChat = openChat;
+window.showWindow = showWindow;
 
 // ---- elements ----
 const {
