@@ -5,6 +5,7 @@ import { setupDocumentsUI } from './documents.js';
 import { setupPromptTemplatesUI } from './prompt_templates.js';
 import { setupLLMServiceAdminUI } from './llm_service_admin.js';
 import { renderSearchResultItem } from './search_result_item.js';
+import { setupChatHistoryUI } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
@@ -29,6 +30,9 @@ const q = $('q');
 const topK = $('topK');
 const doSearch = $('doSearch');
 const searchOut = $('searchOut');
+
+const listSessions = $('listSessions');
+const sessionList = $('sessionList');
 
 const listDocs = $('listDocs');
 const docCount = $('docCount');
@@ -106,6 +110,11 @@ function toastERR(outEl, err) {
   outEl.classList.remove('ok'); outEl.classList.add('err');
 }
 
+function setSession(id) {
+  sessionId = id;
+  sidOut.textContent = `session_id: ${sessionId}`;
+}
+
 function sdkHandler(btn, outEl, fn) {
   return async () => {
     try {
@@ -128,8 +137,7 @@ function ensureSDK() {
 async function ensureSession() {
   ensureSDK();
   const res = await sdk.sessions.ensure();
-  sessionId = res.session_id;
-  sidOut.textContent = `session_id: ${sessionId}`;
+  setSession(res.session_id);
   return sessionId;
 }
 
@@ -227,6 +235,34 @@ setupChatUI({
   elements: { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel },
   helpers: { ensureSDK, setBusy },
   getPersona: () => personaText
+});
+
+setupChatHistoryUI({
+  getSDK: () => sdk,
+  setSession: (id) => setSession(id),
+  renderHistory: (s) => {
+    const chatWin = document.querySelector('.window[data-id="chat"]');
+    if (chatWin) chatWin.style.display = 'block';
+    chatOut.innerHTML = '';
+    (s.history || []).forEach(pair => {
+      const [u, b] = pair;
+      if (u != null) {
+        const uDiv = document.createElement('div');
+        uDiv.className = 'chat-msg chat-msg--user';
+        uDiv.textContent = u;
+        chatOut.appendChild(uDiv);
+      }
+      if (b != null) {
+        const bDiv = document.createElement('div');
+        bDiv.className = 'chat-msg chat-msg--bot';
+        bDiv.textContent = b;
+        chatOut.appendChild(bDiv);
+      }
+    });
+    chatOut.scrollTop = chatOut.scrollHeight;
+  },
+  elements: { listSessions, sessionList },
+  helpers: { ensureSDK, setBusy, toastERR }
 });
 
 // ---- services/models ----
