@@ -4,6 +4,7 @@ import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
 import { setupPromptTemplatesUI } from './prompt_templates.js';
 import { setupLLMServiceAdminUI } from './llm_service_admin.js';
+import { renderSearchResultItem } from './search_result_item.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
@@ -166,10 +167,33 @@ ensure.addEventListener('click', async () => {
 });
 
 // ---- search ----
-doSearch.addEventListener('click', sdkHandler(doSearch, searchOut, () => sdk.search.run({
-  q: q.value,
-  topK: Number(topK.value) || 5
-})));
+doSearch.addEventListener('click', async () => {
+  try {
+    ensureSDK();
+    setBusy(doSearch, true);
+    const res = await sdk.search.run({
+      q: q.value,
+      topK: Number(topK.value) || 5
+    });
+    renderSearchResults(res);
+  } catch (e) {
+    searchOut.innerHTML = '';
+    const err = document.createElement('div');
+    err.textContent = e?.message || String(e);
+    err.classList.add('err');
+    searchOut.appendChild(err);
+  } finally {
+    setBusy(doSearch, false);
+  }
+});
+
+function renderSearchResults(res) {
+  searchOut.innerHTML = '';
+  const arr = Array.isArray(res) ? res : (res?.results || []);
+  for (const r of arr) {
+    searchOut.appendChild(renderSearchResultItem(r, { segmentDeps: { sdk, segView } }));
+  }
+}
 
 // ---- documents & segments ----
 setupDocumentsUI({

@@ -137,6 +137,8 @@ export function renderBySchema(data, spec = {}, opts = {}) {
       });
       inputCtrls.set(key, { get, set });
       valueNode = node;
+    } else if (typeof cfg.render === 'function') {
+      valueNode = cfg.render(state[key], cfg, { data: state, key });
     } else {
       valueNode = renderValue(state[key], cfg);
     }
