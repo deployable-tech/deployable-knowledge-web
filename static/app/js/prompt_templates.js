@@ -12,7 +12,11 @@ export function setupPromptTemplatesUI({ getSDK, elements, helpers }) {
     if (!tpl) return;
     const host = renderTemplateCard(tpl, {
       sdk: getSDK(),
-      onSelect: (values) => { if (templateId) templateId.value = values.id; }
+      onSelect: (values) => { if (templateId) templateId.value = values.id; },
+      onSave: (values) => {
+        const current = templates.get(values.id) || {};
+        templates.set(values.id, { ...current, ...values });
+      }
     });
     tplCard.appendChild(host);
   }
