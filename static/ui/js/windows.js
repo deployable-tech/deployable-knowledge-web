@@ -1,15 +1,12 @@
-export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } = {}) {
+export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
   const container = document.getElementById(containerId) || document.body;
   const menu = document.getElementById(menuId);
+  const menuBtn = document.getElementById(menuBtnId);
   const registry = new Map();
   let zTop = 1;
 
   if (menu) {
     menu.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Windows…';
-    menu.appendChild(placeholder);
   }
 
   const bringToFront = (w) => {
@@ -17,6 +14,15 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     w.style.zIndex = zTop;
     w.focus();
   };
+
+  const defaults = [
+    { left: 40,  top: 40 },
+    { left: 360, top: 40 },
+    { left: 680, top: 40 },
+    { left: 40,  top: 300 },
+    { left: 360, top: 300 },
+    { left: 680, top: 300 },
+  ];
 
   function buildWindow(section, idx) {
     const id = section.dataset.win || `win-${idx}`;
@@ -27,8 +33,9 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     wrap.dataset.id = id;
     wrap.tabIndex = 0;
     const saved = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
-    wrap.style.left = saved.left || `${40 + idx * 30}px`;
-    wrap.style.top = saved.top || `${40 + idx * 30}px`;
+    const def = defaults[idx] || { left: 40 + idx * 30, top: 40 + idx * 30 };
+    wrap.style.left = saved.left || `${def.left}px`;
+    wrap.style.top = saved.top || `${def.top}px`;
     if (saved.width) wrap.style.width = saved.width;
     if (saved.height) wrap.style.height = saved.height;
     if (saved.hidden) wrap.style.display = 'none';
@@ -150,24 +157,24 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     clamp();
 
     if (menu) {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = title;
-      menu.appendChild(opt);
+      const li = document.createElement('li');
+      li.textContent = title;
+      li.addEventListener('click', () => {
+        wrap.style.display = 'block';
+        bringToFront(wrap);
+        menu.classList.remove('visible');
+      });
+      menu.appendChild(li);
     }
   }
 
   document.querySelectorAll('section[data-win]').forEach((s, idx) => buildWindow(s, idx));
 
-  if (menu) {
-    menu.addEventListener('change', () => {
-      const id = menu.value;
-      const win = registry.get(id);
-      if (win) {
-        win.style.display = 'block';
-        bringToFront(win);
-      }
-      menu.value = '';
+  if (menu && menuBtn) {
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('visible');
     });
+    document.addEventListener('click', () => menu.classList.remove('visible'));
   }
 }

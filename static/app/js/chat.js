@@ -1,6 +1,6 @@
-export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers }) {
-  const { persona, templateId, chatTopK, inactive, msg, send, stream, meta, chatOut, userId, svcSel, modelSel } = elements;
-  const { ensureSDK, setBusy, safeParse } = helpers;
+export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona }) {
+  const { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
+  const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {
     const div = document.createElement('div');
@@ -10,6 +10,13 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
     chatOut.scrollTop = chatOut.scrollHeight;
     return div;
   }
+
+  msg.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send.click();
+    }
+  });
 
   send.addEventListener('click', async () => {
     try {
@@ -21,36 +28,6 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
       const userText = msg.value;
       appendMessage('user', userText);
       msg.value = '';
-      const res = await sdk.chat.send({
-        message: userText,
-        sessionId: getSessionId(),
-        userId: userId.value || 'local-user',
-        serviceId: svcSel.value || undefined,
-        modelId: modelSel.value || undefined,
-        persona: persona.value || '',
-        templateId: templateId.value || 'rag_chat',
-        topK: Number(chatTopK.value) || 8,
-        inactive: safeParse(inactive.value, undefined)
-      });
-      appendMessage('bot', res.response);
-    } catch (e) {
-      appendMessage('bot', e?.message || String(e));
-    } finally {
-      setBusy(send, false);
-    }
-  });
-
-  stream.addEventListener('click', async () => {
-    try {
-      ensureSDK();
-      const sdk = getSDK();
-      setBusy(stream, true);
-      await ensureSession();
-      meta.textContent = '';
-      const userText = msg.value;
-      appendMessage('user', userText);
-      msg.value = '';
-      const controller = new AbortController();
       const botDiv = appendMessage('bot', '');
       const p = {
         message: userText,
@@ -58,11 +35,9 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
         userId: userId.value || 'local-user',
         serviceId: svcSel.value || undefined,
         modelId: modelSel.value || undefined,
-        persona: persona.value || '',
+        persona: (typeof getPersona === 'function' ? getPersona() : '') || '',
         templateId: templateId.value || 'rag_chat',
-        topK: Number(chatTopK.value) || 8,
-        inactive: safeParse(inactive.value, undefined),
-        signal: controller.signal,
+        topK: Number(topK.value) || 8,
         onMeta: (m) => { meta.textContent = `meta: ${typeof m === 'string' ? m : JSON.stringify(m)}`; },
         onToken: (t) => { botDiv.textContent += t; chatOut.scrollTop = chatOut.scrollHeight; },
         onDone: (final) => {
@@ -76,7 +51,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
     } catch (e) {
       appendMessage('bot', e?.message || String(e));
     } finally {
-      setBusy(stream, false);
+      setBusy(send, false);
     }
   });
 }

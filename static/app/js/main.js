@@ -4,11 +4,12 @@ import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
 import { setupPromptTemplatesUI } from './prompt_templates.js';
 import { setupLLMServiceAdminUI } from './llm_service_admin.js';
+import { renderSearchResultItem } from './search_result_item.js';
+import { setupChatHistoryUI } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
 const j = (o) => JSON.stringify(o, null, 2);
-const safeParse = (s, fallback) => { try { return JSON.parse(s); } catch { return fallback; } };
 
 // ---- elements ----
 const base    = $('base');
@@ -30,6 +31,10 @@ const topK = $('topK');
 const doSearch = $('doSearch');
 const searchOut = $('searchOut');
 
+const newChat = $('newChat');
+const listSessions = $('listSessions');
+const sessionList = $('sessionList');
+
 const listDocs = $('listDocs');
 const docCount = $('docCount');
 const docs = $('docs');
@@ -39,12 +44,11 @@ const segs = $('segs');
 const segView = $('segView');
 
 const persona = $('persona');
+const savePersona = $('savePersona');
+const cancelPersona = $('cancelPersona');
 const templateId = $('templateId');
-const chatTopK = $('chatTopK');
-const inactive = $('inactive');
 const msg = $('msg');
 const send = $('send');
-const stream = $('stream');
 const meta = $('meta');
 const chatOut = $('chatOut');
 
@@ -77,7 +81,7 @@ const createModel = $('createModel');
 const deleteModel = $('deleteModel');
 const svcAdminOut = $('svcAdminOut');
 
-initWindows({ menuId: 'windowMenu', containerId: 'desktop' });
+initWindows({ menuId: 'windowMenu', menuBtnId: 'windowMenuBtn', containerId: 'desktop' });
 
 const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
 if (svcAdminWin) svcAdminWin.style.display = 'none';
@@ -107,6 +111,11 @@ function toastERR(outEl, err) {
   outEl.classList.remove('ok'); outEl.classList.add('err');
 }
 
+function setSession(id) {
+  sessionId = id;
+  sidOut.textContent = `session_id: ${sessionId}`;
+}
+
 function sdkHandler(btn, outEl, fn) {
   return async () => {
     try {
@@ -129,8 +138,7 @@ function ensureSDK() {
 async function ensureSession() {
   ensureSDK();
   const res = await sdk.sessions.ensure();
-  sessionId = res.session_id;
-  sidOut.textContent = `session_id: ${sessionId}`;
+  setSession(res.session_id);
   return sessionId;
 }
 
@@ -140,6 +148,7 @@ initBtn.addEventListener('click', () => {
     sdk = new DKClient({ baseUrl: base.value });
     window.sdk = sdk;
     console.log('SDK ready.');
+    document.dispatchEvent(new Event('dk-sdk-ready'));
   } catch (e) {
     console.error(e);
   }
@@ -170,11 +179,33 @@ ensure.addEventListener('click', async () => {
 });
 
 // ---- search ----
-doSearch.addEventListener('click', sdkHandler(doSearch, searchOut, () => sdk.search.run({
-  q: q.value,
-  topK: Number(topK.value) || 5,
-  inactive: safeParse(inactive.value, undefined)
-})));
+doSearch.addEventListener('click', async () => {
+  try {
+    ensureSDK();
+    setBusy(doSearch, true);
+    const res = await sdk.search.run({
+      q: q.value,
+      topK: Number(topK.value) || 5
+    });
+    renderSearchResults(res);
+  } catch (e) {
+    searchOut.innerHTML = '';
+    const err = document.createElement('div');
+    err.textContent = e?.message || String(e);
+    err.classList.add('err');
+    searchOut.appendChild(err);
+  } finally {
+    setBusy(doSearch, false);
+  }
+});
+
+function renderSearchResults(res) {
+  searchOut.innerHTML = '';
+  const arr = Array.isArray(res) ? res : (res?.results || []);
+  for (const r of arr) {
+    searchOut.appendChild(renderSearchResultItem(r, { segmentDeps: { sdk, segView } }));
+  }
+}
 
 // ---- documents & segments ----
 setupDocumentsUI({
@@ -184,12 +215,56 @@ setupDocumentsUI({
 });
 
 // ---- chat ----
+let personaText = '';
+try { personaText = localStorage.getItem('personaText') || ''; } catch {}
+persona.value = personaText;
+savePersona.addEventListener('click', () => {
+  personaText = persona.value;
+  try { localStorage.setItem('personaText', personaText); } catch {}
+  const w = document.querySelector('.window[data-id="persona"]');
+  if (w) w.style.display = 'none';
+});
+cancelPersona.addEventListener('click', () => {
+  persona.value = personaText;
+  const w = document.querySelector('.window[data-id="persona"]');
+  if (w) w.style.display = 'none';
+});
+
 setupChatUI({
   getSDK: () => sdk,
   ensureSession,
   getSessionId: () => sessionId,
-  elements: { persona, templateId, chatTopK, inactive, msg, send, stream, meta, chatOut, userId, svcSel, modelSel },
-  helpers: { ensureSDK, setBusy, safeParse }
+  elements: { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel },
+  helpers: { ensureSDK, setBusy },
+  getPersona: () => personaText
+});
+
+setupChatHistoryUI({
+  getSDK: () => sdk,
+  setSession: (id) => setSession(id),
+  renderHistory: (s) => {
+    const chatWin = document.querySelector('.window[data-id="chat"]');
+    if (chatWin) chatWin.style.display = 'block';
+    chatOut.innerHTML = '';
+    (s.history || []).forEach(pair => {
+      const [u, b] = pair;
+      if (u != null) {
+        const uDiv = document.createElement('div');
+        uDiv.className = 'chat-msg chat-msg--user';
+        uDiv.textContent = u;
+        chatOut.appendChild(uDiv);
+      }
+      if (b != null) {
+        const bDiv = document.createElement('div');
+        bDiv.className = 'chat-msg chat-msg--bot';
+        bDiv.textContent = b;
+        chatOut.appendChild(bDiv);
+      }
+    });
+    chatOut.scrollTop = chatOut.scrollHeight;
+  },
+  elements: { sessionList, listSessions, newChat },
+  helpers: { ensureSDK, setBusy, toastERR }
 });
 
 // ---- services/models ----

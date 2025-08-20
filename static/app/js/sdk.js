@@ -295,8 +295,14 @@ export class DKClient {
           try { finalMeta = JSON.parse(data); } catch { finalMeta = data; }
           onMeta?.(finalMeta);
         } else if (event === "delta") {
-          finalText += data;
-          onToken?.(data);
+          let token = data;
+          try {
+            const parsed = JSON.parse(data);
+            if (typeof parsed === 'string') token = parsed;
+            else if (parsed?.delta) token = parsed.delta;
+          } catch {}
+          finalText += token;
+          onToken?.(token);
         } else if (event === "done") {
           try {
             const obj = JSON.parse(data);
