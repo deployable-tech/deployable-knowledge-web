@@ -1,6 +1,42 @@
 import { renderServiceCard } from './llm_services_item.js';
 import { renderModelCard } from './llm_service_model_item.js';
 
+export const servicesWindow = {
+  id: 'services',
+  title: 'LLM Service & Model',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'button', id: 'loadServices', text: 'Load Services' },
+        { tag: 'button', id: 'refreshSelection', text: 'Get Selection' },
+        { tag: 'button', id: 'manageServices', text: 'Manage Services' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'label', attrs: { style: 'min-width:80px;' }, text: 'Service' },
+        { tag: 'select', id: 'svc' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'label', attrs: { style: 'min-width:80px;' }, text: 'Model' },
+        { tag: 'select', id: 'model' }
+      ]
+    },
+    { tag: 'div', class: 'row', children: [ { tag: 'button', id: 'setSelection', text: 'Update Selection' } ] },
+    { tag: 'div', id: 'serviceLst' },
+    { tag: 'div', id: 'serviceCards' },
+    { tag: 'div', id: 'modelCards' }
+  ]
+};
+
 export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
   const { loadServices, refreshSel, svcSel, modelSel, setSelection, serviceCards, modelCards } = elements;
   const { ensureSDK } = helpers;

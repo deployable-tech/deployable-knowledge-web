@@ -1,6 +1,53 @@
 import { renderDocumentItem } from './document_item.js';
 import { renderSegmentItem } from './segment_item.js';
 
+export const documentsWindow = {
+  id: 'documents',
+  title: 'Documents',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'files', attrs: { type: 'file', multiple: true } },
+        { tag: 'button', id: 'upload', text: 'Upload' },
+        { tag: 'button', id: 'ingestAll', text: 'Ingest All' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'removeSource', attrs: { placeholder: 'source name to remove…' } },
+        { tag: 'button', id: 'remove', text: 'Remove Source' },
+        { tag: 'button', id: 'clearDb', text: 'Clear DB' }
+      ]
+    },
+    { tag: 'pre', id: 'ingOut', class: 'mono', attrs: { style: 'max-height:160px;' } },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'button', id: 'listDocs', text: 'List Documents' },
+        { tag: 'span', id: 'docCount', class: 'subtle' }
+      ]
+    },
+    { tag: 'div', id: 'docs', class: 'list' },
+    { tag: 'div', class: 'spacer' },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'label', attrs: { style: 'min-width:80px;' }, text: 'Segments of' },
+        { tag: 'input', id: 'segSource', attrs: { placeholder: 'source.txt (auto-fills on click)' } },
+        { tag: 'button', id: 'listSegs', text: 'List Segments' }
+      ]
+    },
+    { tag: 'div', id: 'segs', class: 'list' },
+    { tag: 'pre', id: 'segView', class: 'mono', attrs: { style: 'max-height:160px;' } }
+  ]
+};
+
 export function setupDocumentsUI({ getSDK, elements, helpers }) {
   const { listDocs, docCount, docs, segSource, listSegs, segs, segView } = elements;
   const { ensureSDK, setBusy, toastERR } = helpers;

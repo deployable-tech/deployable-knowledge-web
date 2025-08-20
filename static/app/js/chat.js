@@ -1,3 +1,26 @@
+export const chatWindow = {
+  id: 'chat',
+  title: 'Chat',
+  layout: [
+    { tag: 'div', id: 'chatOut', class: 'chat-history' },
+    {
+      tag: 'div',
+      class: 'chat-input',
+      children: [
+        { tag: 'textarea', id: 'msg', attrs: { placeholder: 'Ask your system something grounded…' } },
+        {
+          tag: 'div',
+          class: 'row',
+          children: [
+            { tag: 'button', id: 'send', text: 'Send' },
+            { tag: 'span', id: 'meta', class: 'subtle mono' }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
 export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona }) {
   const { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
   const { ensureSDK, setBusy } = helpers;

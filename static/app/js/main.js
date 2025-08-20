@@ -1,19 +1,63 @@
 import { DKClient } from './sdk.js';
-import { setupLLMServiceUI } from './llm_service.js';
-import { setupChatUI } from './chat.js';
-import { setupDocumentsUI } from './documents.js';
-import { setupPromptTemplatesUI } from './prompt_templates.js';
-import { setupLLMServiceAdminUI } from './llm_service_admin.js';
+import { setupLLMServiceUI, servicesWindow } from './llm_service.js';
+import { setupChatUI, chatWindow } from './chat.js';
+import { setupDocumentsUI, documentsWindow } from './documents.js';
+import { setupPromptTemplatesUI, templatesWindow } from './prompt_templates.js';
+import { setupLLMServiceAdminUI, serviceAdminWindow } from './llm_service_admin.js';
 import { renderSearchResultItem } from './search_result_item.js';
-import { setupChatHistoryUI } from './chat_history.js';
+import { setupChatHistoryUI, historyWindow } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
-import { windowsConfig } from './windows_config.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
+const searchWindow = {
+  id: 'search',
+  title: 'Search',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'q', attrs: { placeholder: 'query…' } },
+        { tag: 'label', text: 'Top K' },
+        { tag: 'input', id: 'topK', attrs: { type: 'number', value: '5', style: 'max-width:80px;' } },
+        { tag: 'button', id: 'doSearch', text: 'Run' }
+      ]
+    },
+    { tag: 'div', id: 'searchOut', class: 'list' }
+  ]
+};
+
+const personaWindow = {
+  id: 'persona',
+  title: 'Persona',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'button', id: 'savePersona', text: 'Save' },
+        { tag: 'button', id: 'cancelPersona', text: 'Cancel' }
+      ]
+    },
+    { tag: 'textarea', id: 'persona', attrs: { placeholder: 'optional persona' } }
+  ]
+};
+
+const windows = [
+  servicesWindow,
+  serviceAdminWindow,
+  searchWindow,
+  documentsWindow,
+  chatWindow,
+  historyWindow,
+  personaWindow,
+  templatesWindow
+];
+
 // ---- build windows ----
 const { elements } = initWindows({
-  config: windowsConfig,
+  config: windows,
   menuId: 'windowMenu',
   menuBtnId: 'windowMenuBtn',
   containerId: 'desktop'

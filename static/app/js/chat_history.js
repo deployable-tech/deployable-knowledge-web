@@ -1,3 +1,19 @@
+export const historyWindow = {
+  id: 'history',
+  title: 'Chat History',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'button', id: 'newChat', text: 'New Chat' },
+        { tag: 'button', id: 'listSessions', text: 'List Sessions' }
+      ]
+    },
+    { tag: 'div', id: 'sessionList', class: 'list' }
+  ]
+};
+
 export function setupChatHistoryUI({ getSDK, setSession, renderHistory, elements, helpers }) {
   const { sessionList,listSessions, newChat } = elements;
   const { ensureSDK, setBusy, toastERR } = helpers;

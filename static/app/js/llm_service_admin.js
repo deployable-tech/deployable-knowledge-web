@@ -1,3 +1,47 @@
+export const serviceAdminWindow = {
+  id: 'service-admin',
+  title: 'LLM Service Admin',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'newSvcProvider', attrs: { placeholder: 'provider' } },
+        { tag: 'input', id: 'newSvcBaseUrl', attrs: { placeholder: 'base URL' } },
+        { tag: 'input', id: 'newSvcAuth', attrs: { placeholder: 'auth ref' } },
+        { tag: 'button', id: 'createSvc', text: 'Create Service' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'delSvcId', attrs: { placeholder: 'service id' } },
+        { tag: 'button', id: 'deleteSvc', text: 'Delete Service' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'modelSvcId', attrs: { placeholder: 'service id' } },
+        { tag: 'input', id: 'modelName', attrs: { placeholder: 'model name' } },
+        { tag: 'input', id: 'modelModality', attrs: { placeholder: 'modality' } },
+        { tag: 'button', id: 'createModel', text: 'Add Model' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'delModelId', attrs: { placeholder: 'model id' } },
+        { tag: 'button', id: 'deleteModel', text: 'Delete Model' }
+      ]
+    },
+    { tag: 'pre', id: 'svcAdminOut', class: 'mono', attrs: { style: 'max-height:200px;' } }
+  ]
+};
+
 export function setupLLMServiceAdminUI({ getSDK, elements, helpers }) {
   const {
     createSvc,

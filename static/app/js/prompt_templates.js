@@ -1,5 +1,48 @@
 import { renderTemplateCard } from './prompt_template_item.js';
 
+export const templatesWindow = {
+  id: 'templates',
+  title: 'Templates & Settings',
+  layout: [
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'base', attrs: { size: '42' } },
+        { tag: 'button', id: 'init', text: 'Init SDK' },
+        { tag: 'button', id: 'prime', text: 'Prime User Session' },
+        { tag: 'button', id: 'ensure', text: 'Ensure Session' },
+        { tag: 'span', id: 'sid', class: 'mono subtle' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'button', id: 'loadTemplates', text: 'Load Templates' },
+        { tag: 'select', id: 'tplSel' }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'label', text: 'Template ID' },
+        { tag: 'input', id: 'templateId', attrs: { value: 'rag_chat' } }
+      ]
+    },
+    {
+      tag: 'div',
+      class: 'row',
+      children: [
+        { tag: 'input', id: 'userId', attrs: { value: 'local-user' } },
+        { tag: 'button', id: 'getSettings', text: 'Get Settings' }
+      ]
+    },
+    { tag: 'div', id: 'tplCard' }
+  ]
+};
+
 export function setupPromptTemplatesUI({ getSDK, elements, helpers }) {
   const { loadTemplates, tplSel, tplCard, templateId } = elements;
   const { ensureSDK } = helpers;
