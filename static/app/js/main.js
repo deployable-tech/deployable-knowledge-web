@@ -3,6 +3,7 @@ import { setupLLMServiceUI } from './llm_service.js';
 import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
 import { setupPromptTemplatesUI } from './prompt_templates.js';
+import { setupLLMServiceAdminUI } from './llm_service_admin.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
@@ -62,7 +63,28 @@ const userId = $('userId');
 const getSettings = $('getSettings');
 const miscOut = $('miscOut');
 
+const manageServices = $('manageServices');
+const newSvcProvider = $('newSvcProvider');
+const newSvcBaseUrl = $('newSvcBaseUrl');
+const newSvcAuth = $('newSvcAuth');
+const delSvcId = $('delSvcId');
+const modelSvcId = $('modelSvcId');
+const modelName = $('modelName');
+const modelModality = $('modelModality');
+const delModelId = $('delModelId');
+const createSvc = $('createSvc');
+const deleteSvc = $('deleteSvc');
+const createModel = $('createModel');
+const deleteModel = $('deleteModel');
+const svcAdminOut = $('svcAdminOut');
+
 initWindows({ menuId: 'windowMenu', containerId: 'desktop' });
+
+const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
+if (svcAdminWin) svcAdminWin.style.display = 'none';
+manageServices.addEventListener('click', () => {
+  if (svcAdminWin) svcAdminWin.style.display = 'block';
+});
 
 // ---- state ----
 let sdk = null;
@@ -180,6 +202,27 @@ setupPromptTemplatesUI({
   getSDK: () => sdk,
   elements: { loadTemplates, tplSel, tplCard, templateId },
   helpers: { ensureSDK }
+});
+
+// ---- service admin ----
+setupLLMServiceAdminUI({
+  getSDK: () => sdk,
+  elements: {
+    createSvc,
+    deleteSvc,
+    createModel,
+    deleteModel,
+    newSvcProvider,
+    newSvcBaseUrl,
+    newSvcAuth,
+    delSvcId,
+    modelSvcId,
+    modelName,
+    modelModality,
+    delModelId,
+    out: svcAdminOut
+  },
+  helpers: { ensureSDK, setBusy, toastOK, toastERR }
 });
 
 // ---- ingest ----
