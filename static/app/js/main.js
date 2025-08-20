@@ -7,81 +7,81 @@ import { setupLLMServiceAdminUI } from './llm_service_admin.js';
 import { renderSearchResultItem } from './search_result_item.js';
 import { setupChatHistoryUI } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
+import { windowsConfig } from './windows_config.js';
 
-const $ = (id) => document.getElementById(id);
 const j = (o) => JSON.stringify(o, null, 2);
 
+// ---- build windows ----
+const { elements } = initWindows({
+  config: windowsConfig,
+  menuId: 'windowMenu',
+  menuBtnId: 'windowMenuBtn',
+  containerId: 'desktop'
+});
+
 // ---- elements ----
-const base    = $('base');
-const initBtn = $('init');
-const prime   = $('prime');
-const ensure  = $('ensure');
-const sidOut  = $('sid');
-
-const loadServices = $('loadServices');
-const refreshSel   = $('refreshSelection');
-const svcSel = $('svc');
-const modelSel = $('model');
-const setSelection = $('setSelection');
-const serviceCards = $('serviceCards');
-const modelCards = $('modelCards');
-
-const q = $('q');
-const topK = $('topK');
-const doSearch = $('doSearch');
-const searchOut = $('searchOut');
-
-const newChat = $('newChat');
-const listSessions = $('listSessions');
-const sessionList = $('sessionList');
-
-const listDocs = $('listDocs');
-const docCount = $('docCount');
-const docs = $('docs');
-const segSource = $('segSource');
-const listSegs = $('listSegs');
-const segs = $('segs');
-const segView = $('segView');
-
-const persona = $('persona');
-const savePersona = $('savePersona');
-const cancelPersona = $('cancelPersona');
-const templateId = $('templateId');
-const msg = $('msg');
-const send = $('send');
-const meta = $('meta');
-const chatOut = $('chatOut');
-
-const files = $('files');
-const upload = $('upload');
-const ingestAll = $('ingestAll');
-const removeSource = $('removeSource');
-const removeBtn = $('remove');
-const clearDb = $('clearDb');
-const ingOut = $('ingOut');
-
-const loadTemplates = $('loadTemplates');
-const tplSel = $('tplSel');
-const tplCard = $('tplCard');
-const userId = $('userId');
-const getSettings = $('getSettings');
-
-const manageServices = $('manageServices');
-const newSvcProvider = $('newSvcProvider');
-const newSvcBaseUrl = $('newSvcBaseUrl');
-const newSvcAuth = $('newSvcAuth');
-const delSvcId = $('delSvcId');
-const modelSvcId = $('modelSvcId');
-const modelName = $('modelName');
-const modelModality = $('modelModality');
-const delModelId = $('delModelId');
-const createSvc = $('createSvc');
-const deleteSvc = $('deleteSvc');
-const createModel = $('createModel');
-const deleteModel = $('deleteModel');
-const svcAdminOut = $('svcAdminOut');
-
-initWindows({ menuId: 'windowMenu', menuBtnId: 'windowMenuBtn', containerId: 'desktop' });
+const {
+  base,
+  init: initBtn,
+  prime,
+  ensure,
+  sid: sidOut,
+  loadServices,
+  refreshSelection: refreshSel,
+  svc: svcSel,
+  model: modelSel,
+  setSelection,
+  serviceCards,
+  modelCards,
+  q,
+  topK,
+  doSearch,
+  searchOut,
+  newChat,
+  listSessions,
+  sessionList,
+  listDocs,
+  docCount,
+  docs,
+  segSource,
+  listSegs,
+  segs,
+  segView,
+  persona,
+  savePersona,
+  cancelPersona,
+  templateId,
+  msg,
+  send,
+  meta,
+  chatOut,
+  files,
+  upload,
+  ingestAll,
+  removeSource,
+  remove: removeBtn,
+  clearDb,
+  ingOut,
+  loadTemplates,
+  tplSel,
+  tplCard,
+  userId,
+  getSettings,
+  manageServices,
+  newSvcProvider,
+  newSvcBaseUrl,
+  newSvcAuth,
+  delSvcId,
+  modelSvcId,
+  modelName,
+  modelModality,
+  delModelId,
+  createSvc,
+  deleteSvc,
+  createModel,
+  deleteModel,
+  svcAdminOut
+} = elements;
 
 const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
 if (svcAdminWin) svcAdminWin.style.display = 'none';
