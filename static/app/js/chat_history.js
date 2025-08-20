@@ -1,12 +1,11 @@
 export function setupChatHistoryUI({ getSDK, setSession, renderHistory, elements, helpers }) {
-  const { listSessions, sessionList } = elements;
+  const { sessionList, newChat } = elements;
   const { ensureSDK, setBusy, toastERR } = helpers;
 
-  listSessions.addEventListener('click', async () => {
+  async function loadSessions() {
+    const sdk = getSDK();
+    if (!sdk) return;
     try {
-      ensureSDK();
-      const sdk = getSDK();
-      setBusy(listSessions, true);
       const res = await sdk.sessions.list();
       sessionList.innerHTML = '';
       (res || []).forEach(sess => {
@@ -15,7 +14,6 @@ export function setupChatHistoryUI({ getSDK, setSession, renderHistory, elements
         item.textContent = sess.title || sess.session_id;
         item.addEventListener('click', async () => {
           try {
-            ensureSDK();
             const s = await sdk.sessions.get(sess.session_id);
             setSession(s.session_id);
             renderHistory(s);
@@ -27,8 +25,25 @@ export function setupChatHistoryUI({ getSDK, setSession, renderHistory, elements
       });
     } catch (e) {
       toastERR(sessionList, e);
+    }
+  }
+
+  newChat.addEventListener('click', async () => {
+    try {
+      ensureSDK();
+      setBusy(newChat, true);
+      const sdk = getSDK();
+      const res = await sdk.sessions.create();
+      setSession(res.session_id);
+      renderHistory({ history: [] });
+      await loadSessions();
+    } catch (e) {
+      toastERR(sessionList, e);
     } finally {
-      setBusy(listSessions, false);
+      setBusy(newChat, false);
     }
   });
+
+  loadSessions();
+  document.addEventListener('dk-sdk-ready', loadSessions);
 }

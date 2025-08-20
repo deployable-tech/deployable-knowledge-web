@@ -31,7 +31,7 @@ const topK = $('topK');
 const doSearch = $('doSearch');
 const searchOut = $('searchOut');
 
-const listSessions = $('listSessions');
+const newChat = $('newChat');
 const sessionList = $('sessionList');
 
 const listDocs = $('listDocs');
@@ -147,6 +147,7 @@ initBtn.addEventListener('click', () => {
     sdk = new DKClient({ baseUrl: base.value });
     window.sdk = sdk;
     console.log('SDK ready.');
+    document.dispatchEvent(new Event('dk-sdk-ready'));
   } catch (e) {
     console.error(e);
   }
@@ -261,7 +262,7 @@ setupChatHistoryUI({
     });
     chatOut.scrollTop = chatOut.scrollHeight;
   },
-  elements: { listSessions, sessionList },
+  elements: { sessionList, newChat },
   helpers: { ensureSDK, setBusy, toastERR }
 });
 
