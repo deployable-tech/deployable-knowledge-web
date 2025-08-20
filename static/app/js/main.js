@@ -2,6 +2,7 @@ import { DKClient } from './sdk.js';
 import { setupLLMServiceUI } from './llm_service.js';
 import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
+import { setupPromptTemplatesUI } from './prompt_templates.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
@@ -54,9 +55,9 @@ const removeBtn = $('remove');
 const clearDb = $('clearDb');
 const ingOut = $('ingOut');
 
-const tplList = $('tplList');
-const tplId = $('tplId');
-const tplGet = $('tplGet');
+const loadTemplates = $('loadTemplates');
+const tplSel = $('tplSel');
+const tplCard = $('tplCard');
 const userId = $('userId');
 const getSettings = $('getSettings');
 const miscOut = $('miscOut');
@@ -174,6 +175,13 @@ setupLLMServiceUI({
   helpers: { ensureSDK, setBusy }
 });
 
+// ---- prompt templates ----
+setupPromptTemplatesUI({
+  getSDK: () => sdk,
+  elements: { loadTemplates, tplSel, tplCard, templateId },
+  helpers: { ensureSDK }
+});
+
 // ---- ingest ----
 upload.addEventListener('click', async () => {
   try {
@@ -228,26 +236,6 @@ clearDb.addEventListener('click', async () => {
 });
 
 // ---- templates & settings ----
-tplList.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    const res = await sdk.templates.list();
-    toastOK(miscOut, res);
-  } catch (e) {
-    toastERR(miscOut, e);
-  }
-});
-
-tplGet.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    const res = await sdk.templates.get(tplId.value.trim());
-    toastOK(miscOut, res);
-  } catch (e) {
-    toastERR(miscOut, e);
-  }
-});
-
 getSettings.addEventListener('click', async () => {
   try {
     ensureSDK();
@@ -271,7 +259,7 @@ getSettings.addEventListener('click', async () => {
     try { loadServices.click(); } catch {}
     try { refreshSel.click(); } catch {}
     try { listDocs.click(); } catch {}
-    try { tplList.click(); } catch {}
+    try { loadTemplates.click(); } catch {}
     try { getSettings.click(); } catch {}
   } catch (e) {
     // non-fatal

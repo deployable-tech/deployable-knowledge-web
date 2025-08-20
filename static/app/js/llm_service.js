@@ -3,84 +3,100 @@ import { renderModelCard } from './llm_service_model_item.js';
 
 export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
   const { loadServices, refreshSel, svcSel, modelSel, setSelection, serviceCards, modelCards } = elements;
-  const { ensureSDK, setBusy } = helpers;
+  const { ensureSDK } = helpers;
+
+  const services = new Map();
+  const models = new Map();
+
+  function renderService(service) {
+    serviceCards.innerHTML = '';
+    if (!service) return;
+    const host = renderServiceCard(service, {
+      sdk: getSDK(),
+      getUserId: () => userIdEl.value || 'local-user'
+    });
+    serviceCards.appendChild(host);
+  }
+
+  function renderModel(model) {
+    modelCards.innerHTML = '';
+    if (!model) return;
+    const host = renderModelCard(model, {
+      sdk: getSDK(),
+      getUserId: () => userIdEl.value || 'local-user',
+      getSelectedServiceId: () => svcSel.value
+    });
+    modelCards.appendChild(host);
+  }
 
   async function populateModels() {
+    modelSel.innerHTML = '';
+    modelCards.innerHTML = '';
+    models.clear();
+    const sid = svcSel.value;
+    if (!sid) return;
     try {
       ensureSDK();
       const sdk = getSDK();
-      const sid = svcSel.value;
-      modelSel.innerHTML = '';
-      if (!sid) return;
-      const models = await sdk.llm.listModels(sid);
-      for (const m of models) {
+      const list = await sdk.llm.listModels(sid);
+      const def = document.createElement('option');
+      def.value = '';
+      def.textContent = '-- select model --';
+      modelSel.appendChild(def);
+      for (const m of list) {
+        models.set(m.id, m);
         const opt = document.createElement('option');
         opt.value = m.id;
         opt.textContent = `${m.name || m.model_name || m.id} (${m.modality || m.mode || 'text'})`;
         modelSel.appendChild(opt);
       }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  const cards = new Map();
-  const modelCardMap = new Map();
-
-  function highlight(ctx) {
-    for (const n of cards.values()) n.classList.remove('obj-card--selected');
-    ctx.node.classList.add('obj-card--selected');
-  }
-
-  async function renderModelsForService(serviceId) {
-    ensureSDK();
-    const sdk = getSDK();
-    modelCards.innerHTML = '';
-    modelCardMap.clear();
-    if (!serviceId) return;
-    const models = await sdk.llm.listModels(serviceId);
-    for (const m of models) {
-      const host = renderModelCard(m, {
-        sdk,
-        getUserId: () => userIdEl.value || 'local-user',
-        getSelectedServiceId: () => serviceId,
-        onSelect: (_values, ctx) => {
-          for (const n of modelCardMap.values()) n.classList.remove('obj-card--selected');
-          ctx.node.classList.add('obj-card--selected');
-          const opt = [...modelSel.options].find(o => o.value === m.id);
-          if (opt) modelSel.value = opt.value;
-        }
-      });
-      modelCards.appendChild(host);
-      modelCardMap.set(m.id, host);
-    }
-  }
-
-  loadServices.addEventListener('click', async () => {
-    try {
-      ensureSDK();
-      const sdk = getSDK();
-      const services = await sdk.llm.listServices();
-      serviceCards.innerHTML = '';
-      cards.clear();
-      for (const s of services) {
-        const host = renderServiceCard(s, {
-          sdk,
-          getUserId: () => userIdEl.value || 'local-user',
-          onSelect: async (_values, ctx) => {
-            highlight(ctx);
-            await renderModelsForService(s.id);
-          }
-        });
-        serviceCards.appendChild(host);
-        cards.set(s.id, host);
+      if (list.length) {
+        modelSel.value = list[0].id;
+        renderModel(list[0]);
       }
     } catch (e) {
       console.error(e);
     }
+  }
+
+  async function fetchServices() {
+    try {
+      ensureSDK();
+      const sdk = getSDK();
+      const list = await sdk.llm.listServices();
+      services.clear();
+      svcSel.innerHTML = '';
+      const def = document.createElement('option');
+      def.value = '';
+      def.textContent = '-- select service --';
+      svcSel.appendChild(def);
+      for (const s of list) {
+        services.set(s.id, s);
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name || s.provider || s.id;
+        svcSel.appendChild(opt);
+      }
+      if (list.length) {
+        svcSel.value = list[0].id;
+        renderService(list[0]);
+        await populateModels();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  loadServices.addEventListener('click', fetchServices);
+
+  svcSel.addEventListener('change', async () => {
+    renderService(services.get(svcSel.value));
+    await populateModels();
   });
 
-  svcSel.addEventListener('change', populateModels);
+  modelSel.addEventListener('change', () => {
+    renderModel(models.get(modelSel.value));
+  });
 
   setSelection.addEventListener('click', async () => {
     try {
