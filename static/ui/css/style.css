@@ -2,28 +2,30 @@
    THEME TOKENS
    Adjust these to reskin the app without touching components
    ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
 :root {
   color-scheme: dark;
 
   /* Typography */
-  --font-body: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
   /* Palette (dark) */
-  --bg:            #0c0f13;
-  --fg:            #eaeef3;
-  --text-subtle:   #9cb2c9;
-  --text-muted:    #8aa0b7;
-  --title:         #b9c8dc;
+  --bg:            #343541;
+  --fg:            #ECECF1;
+  --text-subtle:   #9B9CA5;
+  --text-muted:    #B9BBC6;
+  --title:         #FFFFFF;
 
-  --border:        #1b232e;
-  --panel-bg:      #29384f; /* surfaces / cards / windows */
-  --surface-2:     #202a32; /* inputs / textareas */
+  --border:        #565869;
+  --panel-bg:      #444654; /* surfaces / cards / windows */
+  --surface-2:     #3C3F4A; /* inputs / textareas */
 
   --input-bg:      var(--surface-2);
-  --input-border:  #154080;
+  --input-border:  #565869;
 
-  --accent:        #90a3ff;
+  --accent:        #10a37f;
   --accent-contrast: #ffffff;
 
   --danger:        #b33;
@@ -75,7 +77,7 @@
   --input-bg:      var(--surface-2);
   --input-border:  #d0d7e1;
 
-  --accent:        #3557ff;
+  --accent:        #10a37f;
   --accent-contrast: #ffffff;
 
   --danger:        #b33;
