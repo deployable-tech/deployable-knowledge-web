@@ -200,5 +200,18 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     document.addEventListener('click', () => menu.classList.remove('visible'));
   }
 
-  return { windows: registry, elements };
+  const showWindow = (id) => {
+    const w = registry.get(id);
+    if (w) {
+      w.style.display = '';
+      bringToFront(w);
+      try {
+        const st = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
+        st.hidden = false;
+        localStorage.setItem(`win:${id}`, JSON.stringify(st));
+      } catch {}
+    }
+  };
+
+  return { windows: registry, elements, showWindow };
 }
