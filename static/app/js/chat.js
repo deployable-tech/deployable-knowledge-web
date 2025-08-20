@@ -1,6 +1,6 @@
 export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers }) {
-  const { persona, templateId, chatTopK, inactive, msg, send, stream, meta, chatOut, userId, svcSel, modelSel } = elements;
-  const { ensureSDK, setBusy, safeParse } = helpers;
+  const { persona, templateId, topK, msg, send, stream, meta, chatOut, userId, svcSel, modelSel } = elements;
+  const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {
     const div = document.createElement('div');
@@ -10,6 +10,13 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
     chatOut.scrollTop = chatOut.scrollHeight;
     return div;
   }
+
+  msg.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send.click();
+    }
+  });
 
   send.addEventListener('click', async () => {
     try {
@@ -29,8 +36,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
         modelId: modelSel.value || undefined,
         persona: persona.value || '',
         templateId: templateId.value || 'rag_chat',
-        topK: Number(chatTopK.value) || 8,
-        inactive: safeParse(inactive.value, undefined)
+        topK: Number(topK.value) || 8
       });
       appendMessage('bot', res.response);
     } catch (e) {
@@ -60,8 +66,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
         modelId: modelSel.value || undefined,
         persona: persona.value || '',
         templateId: templateId.value || 'rag_chat',
-        topK: Number(chatTopK.value) || 8,
-        inactive: safeParse(inactive.value, undefined),
+        topK: Number(topK.value) || 8,
         signal: controller.signal,
         onMeta: (m) => { meta.textContent = `meta: ${typeof m === 'string' ? m : JSON.stringify(m)}`; },
         onToken: (t) => { botDiv.textContent += t; chatOut.scrollTop = chatOut.scrollHeight; },

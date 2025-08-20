@@ -10,13 +10,6 @@
 </head>
 <body>
   <header>
-    <strong>DKClient Demo</strong>
-    <span class="pill">browser only</span>
-    <input id="base" size="42" />
-    <button id="init">Init SDK</button>
-    <button id="prime">Prime User Session</button>
-    <button id="ensure">Ensure Session</button>
-    <span id="sid" class="mono subtle"></span>
     <select id="windowMenu">
       <option value="">Windows…</option>
     </select>
@@ -75,14 +68,26 @@
         <h2>Search</h2>
         <div class="row">
           <input id="q" placeholder="query…" />
+          <label>Top K</label>
           <input id="topK" type="number" value="5" style="max-width:80px;" />
           <button id="doSearch">Run</button>
         </div>
         <pre id="searchOut" class="mono" style="max-height:220px;"></pre>
       </section>
 
-      <section id="win-docs" data-win="documents" data-title="Documents & Segments">
-        <h2>Documents & Segments</h2>
+      <section id="win-docs" data-win="documents" data-title="Documents">
+        <h2>Documents</h2>
+        <div class="row">
+          <input id="files" type="file" multiple />
+          <button id="upload">Upload</button>
+          <button id="ingestAll">Ingest All</button>
+        </div>
+        <div class="row">
+          <input id="removeSource" placeholder="source name to remove…" />
+          <button id="remove">Remove Source</button>
+          <button id="clearDb">Clear DB</button>
+        </div>
+        <pre id="ingOut" class="mono" style="max-height:160px;"></pre>
         <div class="row">
           <button id="listDocs">List Documents</button>
           <span id="docCount" class="subtle"></span>
@@ -100,24 +105,6 @@
 
       <section id="win-chat" data-win="chat" data-title="Chat">
         <h2>Chat</h2>
-        <div class="grid-2 chat-ctrls">
-          <div>
-            <label>Persona</label>
-            <input id="persona" placeholder="optional persona tag" />
-          </div>
-          <div>
-            <label>Template ID</label>
-            <input id="templateId" value="rag_chat" />
-          </div>
-          <div>
-            <label>Top K</label>
-            <input id="chatTopK" type="number" value="8" />
-          </div>
-          <div>
-            <label>Inactive (JSON array of object_ids)</label>
-            <input id="inactive" placeholder='["obj_1","obj_2"]' />
-          </div>
-        </div>
         <div id="chatOut" class="chat-history"></div>
         <div class="chat-input">
           <textarea id="msg" placeholder="Ask your system something grounded…"></textarea>
@@ -129,26 +116,31 @@
         </div>
       </section>
 
-      <section id="win-ingest" data-win="ingest" data-title="Ingest">
-        <h2>Ingest</h2>
+      <section id="win-persona" data-win="persona" data-title="Persona">
+        <h2>Persona</h2>
         <div class="row">
-          <input id="files" type="file" multiple />
-          <button id="upload">Upload</button>
-          <button id="ingestAll">Ingest All</button>
+          <label>Persona</label>
+          <input id="persona" placeholder="optional persona tag" />
         </div>
-        <div class="row">
-          <input id="removeSource" placeholder="source name to remove…" />
-          <button id="remove">Remove Source</button>
-          <button id="clearDb">Clear DB</button>
-        </div>
-        <pre id="ingOut" class="mono" style="max-height:160px;"></pre>
       </section>
+
 
       <section id="win-templates" data-win="templates" data-title="Templates & Settings">
         <h2>Templates & Settings</h2>
         <div class="row">
+          <input id="base" size="42" />
+          <button id="init">Init SDK</button>
+          <button id="prime">Prime User Session</button>
+          <button id="ensure">Ensure Session</button>
+          <span id="sid" class="mono subtle"></span>
+        </div>
+        <div class="row">
           <button id="loadTemplates">Load Templates</button>
           <select id="tplSel"></select>
+        </div>
+        <div class="row">
+          <label>Template ID</label>
+          <input id="templateId" value="rag_chat" />
         </div>
         <div class="row">
           <input id="userId" value="local-user" />

@@ -8,7 +8,6 @@ import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
 const j = (o) => JSON.stringify(o, null, 2);
-const safeParse = (s, fallback) => { try { return JSON.parse(s); } catch { return fallback; } };
 
 // ---- elements ----
 const base    = $('base');
@@ -40,8 +39,6 @@ const segView = $('segView');
 
 const persona = $('persona');
 const templateId = $('templateId');
-const chatTopK = $('chatTopK');
-const inactive = $('inactive');
 const msg = $('msg');
 const send = $('send');
 const stream = $('stream');
@@ -172,8 +169,7 @@ ensure.addEventListener('click', async () => {
 // ---- search ----
 doSearch.addEventListener('click', sdkHandler(doSearch, searchOut, () => sdk.search.run({
   q: q.value,
-  topK: Number(topK.value) || 5,
-  inactive: safeParse(inactive.value, undefined)
+  topK: Number(topK.value) || 5
 })));
 
 // ---- documents & segments ----
@@ -188,8 +184,8 @@ setupChatUI({
   getSDK: () => sdk,
   ensureSession,
   getSessionId: () => sessionId,
-  elements: { persona, templateId, chatTopK, inactive, msg, send, stream, meta, chatOut, userId, svcSel, modelSel },
-  helpers: { ensureSDK, setBusy, safeParse }
+  elements: { persona, templateId, topK, msg, send, stream, meta, chatOut, userId, svcSel, modelSel },
+  helpers: { ensureSDK, setBusy }
 });
 
 // ---- services/models ----
