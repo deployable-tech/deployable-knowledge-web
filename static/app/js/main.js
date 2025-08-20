@@ -61,7 +61,6 @@ const tplSel = $('tplSel');
 const tplCard = $('tplCard');
 const userId = $('userId');
 const getSettings = $('getSettings');
-const miscOut = $('miscOut');
 
 const manageServices = $('manageServices');
 const newSvcProvider = $('newSvcProvider');
@@ -283,9 +282,9 @@ getSettings.addEventListener('click', async () => {
   try {
     ensureSDK();
     const res = await sdk.settings.get(userId.value || 'local-user');
-    toastOK(miscOut, res);
+    console.log(res);
   } catch (e) {
-    toastERR(miscOut, e);
+    console.error(e);
   }
 });
 

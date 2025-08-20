@@ -12,14 +12,11 @@ export function createPromptTemplateSchema({
     modes: {
       default: {
         elements: {
-          id:          { type: 'text', format: 'mono' },
           name:        { type: 'text', format: 'title' },
           description: { type: 'text' },
-          template:    { type: 'text', input: { type: 'textarea', rows: 6 } },
-          body:        { type: 'text', input: { type: 'textarea', rows: 6 } },
           created_at:  { type: 'date', format: 'MM/DD/YYYY HH:mm:SS' }
         },
-        order: ['name','description','template','body','created_at'],
+        order: ['name','description','created_at'],
         actions: [
           {
             id: 'select', label: 'Select', variant: 'primary',
@@ -33,6 +30,11 @@ export function createPromptTemplateSchema({
       },
       edit: {
         extends: 'default',
+        elements: {
+          template: { type: 'text', input: { type: 'textarea', rows: 6 } },
+          body:     { type: 'text', input: { type: 'textarea', rows: 6 } }
+        },
+        order: ['name','description','template','body','created_at'],
         use_inputs: true,
         actions_replace: true,
         actions: [
