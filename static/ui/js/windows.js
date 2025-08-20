@@ -138,7 +138,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     wrap.addEventListener('mousedown', () => bringToFront(wrap));
 
     minBtn.addEventListener('click', () => {
-      body.style.display = body.style.display === 'none' ? '' : 'none';
+      wrap.style.display = 'none';
       saveState();
     });
     closeBtn.addEventListener('click', () => {
@@ -180,9 +180,11 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       const li = document.createElement('li');
       li.textContent = title;
       li.addEventListener('click', () => {
-        wrap.style.display = 'block';
+        // Show window again and persist visible state
+        wrap.style.display = '';
         bringToFront(wrap);
         menu.classList.remove('visible');
+        saveState();
       });
       menu.appendChild(li);
     }
