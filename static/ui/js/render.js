@@ -1,6 +1,7 @@
 // render.js — mode-aware schema renderer (safe element factory)
-import { labelize, renderValue, el, safeText } from './formats.js';
+import { labelize, renderValue, safeText } from './formats.js';
 import { renderInput } from './inputs.js';
+import { el } from './dom.js';
 
 // Resolve a spec + mode into a concrete { elements, order, use_inputs, actions }
 function resolveModeSpec(spec, mode = 'default') {
@@ -53,6 +54,7 @@ export function renderBySchema(data, spec = {}, opts = {}) {
 
   const state = { ...data };
   const inputCtrls = new Map();
+  const errorNodes = new Map();
   let changeHook = null;
 
   const controller = {
@@ -63,21 +65,45 @@ export function renderBySchema(data, spec = {}, opts = {}) {
       if (ctl?.set) ctl.set(val);
       emitChange(key, val);
     },
-    onChange: (fn) => { changeHook = typeof fn === 'function' ? fn : null; }
+    onChange: (fn) => { changeHook = typeof fn === 'function' ? fn : null; },
+    validate: () => {
+      let ok = true;
+      for (const key of Object.keys(elements)) {
+        if (!validateField(key)) ok = false;
+      }
+      return ok;
+    }
   };
   function emitChange(key, val) {
     opts.onChange?.(key, val, controller.getValues());
     changeHook?.(key, val, controller.getValues());
   }
 
-  const wrap = h('div', { class: 'obj-card', 'data-mode': mode });
+  function validateField(key) {
+    const cfg = elements[key];
+    if (!cfg) return true;
+    const err = errorNodes.get(key);
+    if (!err) return true;
+    if (cfg?.input?.required) {
+      const val = state[key];
+      const empty = val == null || val === '' || (Array.isArray(val) && val.length === 0);
+      if (empty) {
+        err.textContent = 'Required';
+        return false;
+      }
+    }
+    err.textContent = '';
+    return true;
+  }
+
+  const wrap = el('div', { class: 'obj-card', 'data-mode': mode });
   wrap.__controller = controller;
 
   // header (title + actions[header])
-  const header = h('div', { class: 'obj-card__head' });
+  const header = el('div', { class: 'obj-card__head' });
   for (const [key, cfg] of Object.entries(elements)) {
     if (cfg?.type === 'text' && cfg?.format === 'title' && key in data) {
-      header.appendChild(h('h3', { class: 'obj-card__title' }, safeText(data[key])));
+      header.appendChild(el('h3', { class: 'obj-card__title' }, safeText(data[key])));
     }
   }
   // actions
@@ -88,7 +114,7 @@ export function renderBySchema(data, spec = {}, opts = {}) {
   if (header.childNodes.length) wrap.appendChild(header);
 
   // body fields
-  const body = h('div', { class: 'obj-card__body' });
+  const body = el('div', { class: 'obj-card__body' });
   const keys = (order && Array.isArray(order))
     ? [...new Set(order.filter(k => k in elements).concat(Object.keys(elements).filter(k => !order.includes(k))))] 
     : Object.keys(elements);
@@ -99,14 +125,15 @@ export function renderBySchema(data, spec = {}, opts = {}) {
     if (cfg.hidden) continue;
     if (cfg?.type === 'text' && cfg?.format === 'title') continue;
 
-    const row = h('div', { class: 'obj-card__row' });
-    row.appendChild(h('div', { class: 'obj-card__label' }, labelize(key)));
+    const row = el('div', { class: 'obj-card__row' });
+    row.appendChild(el('div', { class: 'obj-card__label' }, labelize(key)));
 
     let valueNode;
     if (use_inputs && cfg.input) {
       const { node, get, set } = renderInput(key, state[key], cfg, (val) => {
         state[key] = val;
         emitChange(key, val);
+        validateField(key);
       });
       inputCtrls.set(key, { get, set });
       valueNode = node;
@@ -114,7 +141,9 @@ export function renderBySchema(data, spec = {}, opts = {}) {
       valueNode = renderValue(state[key], cfg);
     }
 
-    row.appendChild(h('div', { class: 'obj-card__value' }, valueNode));
+    const valueWrap = el('div', { class: 'obj-card__value' }, valueNode, el('div', { class: 'obj-card__error' }));
+    errorNodes.set(key, valueWrap.lastChild);
+    row.appendChild(valueWrap);
     body.appendChild(row);
   }
   wrap.appendChild(body);
@@ -122,7 +151,7 @@ export function renderBySchema(data, spec = {}, opts = {}) {
   // footer actions
   const ftrActions = actions.filter(a => (a.where || 'header') === 'footer');
   if (ftrActions.length) {
-    const foot = h('div', { class: 'obj-card__foot' });
+    const foot = el('div', { class: 'obj-card__foot' });
     foot.appendChild(buildActions(ftrActions, wrap, controller, opts));
     wrap.appendChild(foot);
   }
@@ -133,49 +162,54 @@ export function renderBySchema(data, spec = {}, opts = {}) {
 // Convenience wrapper that lets you flip modes and wire onAction
 export function renderWithModes(data, spec, { mode = 'default', ...opts } = {}) {
   const host = document.createElement('div');
-  let node = null;
+  const cache = new Map();
+  let current = mode;
+  const shared = { ...data };
 
-  const draw = () => {
-    host.innerHTML = '';
-    node = renderBySchema(data, spec, {
+  function build(m) {
+    const node = renderBySchema(shared, spec, {
       ...opts,
-      mode,
-      setMode: (m) => { mode = m; draw(); }
+      mode: m,
+      setMode,
+      onChange: (k, v, vals) => { Object.assign(shared, vals); opts.onChange?.(k, v, vals); }
     });
-    host.appendChild(node);
-    host.dataset.mode = mode;
-  };
+    cache.set(m, node);
+    return node;
+  }
 
-  draw();
+  function setMode(m) {
+    if (current === m) return;
+    const curNode = cache.get(current);
+    if (curNode) Object.assign(shared, curNode.__controller.getValues());
+    let next = cache.get(m);
+    if (!next) next = build(m);
+    else {
+      const ctl = next.__controller;
+      for (const [k, v] of Object.entries(shared)) ctl.setValue?.(k, v);
+    }
+    host.replaceChildren(next);
+    current = m;
+    host.dataset.mode = m;
+  }
 
-  host.setMode   = (m) => { mode = m; draw(); };
-  host.getMode   = () => mode;
-  host.getValues = () => node.__controller.getValues();
-  host.onChange  = (fn) => node.__controller.onChange(fn);
+  const first = build(mode);
+  host.appendChild(first);
+  host.dataset.mode = mode;
+
+  host.setMode   = setMode;
+  host.getMode   = () => current;
+  host.getValues = () => cache.get(current).__controller.getValues();
+  host.onChange  = (fn) => cache.get(current).__controller.onChange(fn);
 
   return host;
 }
 
 /* ---------- helpers ---------- */
 
-function h(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v == null) continue;
-    node.setAttribute(k, String(v));
-  }
-  for (const c of children) {
-    if (c == null) continue;
-    if (c instanceof Node) node.appendChild(c);
-    else node.appendChild(document.createTextNode(String(c)));
-  }
-  return node;
-}
-
 function buildActions(list, wrap, controller, opts) {
-  const bar = h('div', { class: 'obj-card__actions' });
+  const bar = el('div', { class: 'obj-card__actions' });
   for (const a of list) {
-    const btn = h('button', { class: `btn ${a.variant ? `btn--${a.variant}` : ''}` }, a.label || a.id);
+    const btn = el('button', { class: `btn ${a.variant ? `btn--${a.variant}` : ''}` }, a.label || a.id);
     btn.addEventListener('click', async (ev) => {
       btn.disabled = true;
       try {
@@ -193,3 +227,4 @@ function buildActions(list, wrap, controller, opts) {
   }
   return bar;
 }
+

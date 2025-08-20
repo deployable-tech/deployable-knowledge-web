@@ -107,6 +107,21 @@ function toastERR(outEl, err) {
   outEl.classList.remove('ok'); outEl.classList.add('err');
 }
 
+function sdkHandler(btn, outEl, fn) {
+  return async () => {
+    try {
+      ensureSDK();
+      setBusy(btn, true);
+      const res = await fn();
+      if (outEl) toastOK(outEl, res);
+    } catch (e) {
+      if (outEl) toastERR(outEl, e); else console.error(e);
+    } finally {
+      setBusy(btn, false);
+    }
+  };
+}
+
 function ensureSDK() {
   if (!sdk) throw new Error('Init SDK first.');
 }
@@ -155,22 +170,11 @@ ensure.addEventListener('click', async () => {
 });
 
 // ---- search ----
-doSearch.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    setBusy(doSearch, true);
-    const res = await sdk.search.run({
-      q: q.value,
-      topK: Number(topK.value) || 5,
-      inactive: safeParse(inactive.value, undefined)
-    });
-    toastOK(searchOut, res);
-  } catch (e) {
-    toastERR(searchOut, e);
-  } finally {
-    setBusy(doSearch, false);
-  }
-});
+doSearch.addEventListener('click', sdkHandler(doSearch, searchOut, () => sdk.search.run({
+  q: q.value,
+  topK: Number(topK.value) || 5,
+  inactive: safeParse(inactive.value, undefined)
+})));
 
 // ---- documents & segments ----
 setupDocumentsUI({
@@ -225,57 +229,10 @@ setupLLMServiceAdminUI({
 });
 
 // ---- ingest ----
-upload.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    setBusy(upload, true);
-    const res = await sdk.ingest.upload(files.files);
-    toastOK(ingOut, res);
-  } catch (e) {
-    toastERR(ingOut, e);
-  } finally {
-    setBusy(upload, false);
-  }
-});
-
-ingestAll.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    setBusy(ingestAll, true);
-    const res = await sdk.ingest.ingestAll();
-    toastOK(ingOut, res);
-  } catch (e) {
-    toastERR(ingOut, e);
-  } finally {
-    setBusy(ingestAll, false);
-  }
-});
-
-removeBtn.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    setBusy(removeBtn, true);
-    const res = await sdk.ingest.remove(removeSource.value.trim());
-    toastOK(ingOut, res);
-  } catch (e) {
-    toastERR(ingOut, e);
-  } finally {
-    setBusy(removeBtn, false);
-  }
-});
-
-clearDb.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    setBusy(clearDb, true);
-    const res = await sdk.ingest.clearDb();
-    toastOK(ingOut, res);
-  } catch (e) {
-    toastERR(ingOut, e);
-  } finally {
-    setBusy(clearDb, false);
-  }
-});
+upload.addEventListener('click', sdkHandler(upload, ingOut, () => sdk.ingest.upload(files.files)));
+ingestAll.addEventListener('click', sdkHandler(ingestAll, ingOut, () => sdk.ingest.ingestAll()));
+removeBtn.addEventListener('click', sdkHandler(removeBtn, ingOut, () => sdk.ingest.remove(removeSource.value.trim())));
+clearDb.addEventListener('click', sdkHandler(clearDb, ingOut, () => sdk.ingest.clearDb()));
 
 // ---- templates & settings ----
 getSettings.addEventListener('click', async () => {
