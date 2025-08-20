@@ -1,9 +1,11 @@
 /* =========================================================
-   THEME TOKENS
-   Adjust these to reskin the app without touching components
+   THEME TOKENS (functional palette)
+   - Tweak ONLY the vars in this block to reskin/retune contrast
    ========================================================= */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
+
+/* ---------- DARK (default) ---------- */
 :root {
   color-scheme: dark;
 
@@ -11,78 +13,122 @@
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* Palette (dark) */
-  --bg:            #343541;
-  --fg:            #ECECF1;
-  --text-subtle:   #9B9CA5;
-  --text-muted:    #B9BBC6;
-  --title:         #FFFFFF;
+  /* Seed palette (OKLCH for perceptual control) */
+  --tint:  oklch(0.52 0.06 260);  /* subtle blue-violet cast for neutrals */
+  --brand: oklch(0.70 0.14 160);  /* teal-green accent (replaces #10a37f with richer gamut) */
 
-  --border:        #565869;
-  --panel-bg:      #444654; /* surfaces / cards / windows */
-  --surface-2:     #3C3F4A; /* inputs / textareas */
+  /* Depth knobs (how much tint vs. black for dark neutrals) */
+  /* Increase the *tint* % for a cooler, lighter surface; decrease for deeper/inkier UI */
+  --bg-black-0: 90%; --bg-tint-0: 10%;   /* background (deep) */
+  --bg-black-1: 86%; --bg-tint-1: 14%;  /* panels/cards/windows */
+  --bg-black-2: 82%; --bg-tint-2: 18%;  /* inputs/subsurfaces */
 
-  --input-bg:      var(--surface-2);
-  --input-border:  #565869;
+  
+  /* Text ramps (white vs tint; raise white% for more contrast) */
+  --fg-white-strong: 96%; --fg-tint-strong: 4%;
+  --fg-white:        93%; --fg-tint:        7%;
+  --fg-white-muted:  85%; --fg-tint-muted: 15%;
+  --fg-white-subtle: 78%; --fg-tint-subtle:22%;
 
-  --accent:        #10a37f;
-  --accent-contrast: #ffffff;
+  /* Border strength (mix between fg and bg; raise fg% for crisper borders) */
+  --border-fg: 16%;  --border-bg: 82%;
+  --input-border-fg: 20%; --input-border-bg: 76%;
 
-  --danger:        #b33;
-  --ok:            #69f0ae;
-  --err:           #ff867c;
+  /* Accent shades derived from brand */
+  --accent:            var(--brand);
+  --accent-contrast:   #ffffff;
+  --accent-hover:      color-mix(in oklch, var(--brand) 80%, white 20%);
+  --accent-pressed:    color-mix(in oklch, var(--brand) 80%, black 20%);
 
-  /* Layout rhythm */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
+  /* Semantic */
+  --ok:  oklch(0.78 0.13 150);
+  --err: oklch(0.70 0.20 25);
+  --danger: oklch(0.62 0.20 25);
 
-  /* Sizing */
-  --border-w: 1px;
-  --radius-1: 6px;
-  --radius-2: 8px;
-  --radius-3: 10px;
-  --radius-pill: 999px;
+  /* Rhythm & sizing */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  --border-w: 1px; --radius-1: 6px; --radius-2: 8px; --radius-3: 10px; --radius-pill: 999px;
+  --win-min-w: 280px; --win-min-h: 160px;
 
-  /* Windowing */
-  --win-min-w: 280px;
-  --win-min-h: 160px;
-
-  /* Effects */
-  --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+  /* Effects & motion */
+  --shadow-1: 0 1px 2px rgba(0,0,0,.45);
   --ring: 2px solid var(--accent);
+  --speed-1: 120ms; --speed-2: 180ms; --ease-1: cubic-bezier(.2,.9,.3,1);
 
-  /* Motion */
-  --speed-1: 120ms;
-  --speed-2: 180ms;
-  --ease-1: cubic-bezier(.2,.9,.3,1);
+  /* ---- Derived neutrals (no hand-picked hex) ---- */
+  --bg:        color-mix(in oklch, black var(--bg-black-0), var(--tint) var(--bg-tint-0));
+  --panel-bg:  color-mix(in oklch, black var(--bg-black-1), var(--tint) var(--bg-tint-1));
+  --surface-2: color-mix(in oklch, black var(--bg-black-2), var(--tint) var(--bg-tint-2));
+
+  --fg-strong: color-mix(in oklch, white var(--fg-white-strong), var(--tint) var(--fg-tint-strong));
+  --fg:        color-mix(in oklch, white var(--fg-white),        var(--tint) var(--fg-tint));
+  --text-muted:  color-mix(in oklch, white var(--fg-white-muted),  var(--tint) var(--fg-tint-muted));
+  --text-subtle: color-mix(in oklch, white var(--fg-white-subtle), var(--tint) var(--fg-tint-subtle));
+  --title: var(--fg-strong);
+
+  --border:       color-mix(in oklch, var(--fg) var(--border-fg),        var(--bg) var(--border-bg));
+  --input-border: color-mix(in oklch, var(--fg) var(--input-border-fg),  var(--bg) var(--input-border-bg));
+  --input-bg:     var(--surface-2);
 }
 
+/* ——— “Dim” (much lighter, still dark) ——— */
+:root{
+  --bg-black-0: 60%; --bg-tint-0: 16%;
+  --bg-black-1: 55%; --bg-tint-1: 20%;
+  --bg-black-2: 40%; --bg-tint-2: 24%;
+  --border-fg: 14%; --input-border-fg: 18%;
+}
+/* SMOKE — very light “dark” */
+:root{
+  --bg-black-0: 56%; --bg-tint-0: 24%;
+  --bg-black-1: 52%; --bg-tint-1: 48%;
+  --bg-black-2: 48%; --bg-tint-2: 52%;
+  --border-fg: 10%; --input-border-fg: 12%;
+}
+
+/* ---------- LIGHT (same seeds, flipped mixes) ---------- */
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg:            #ffffff;
-  --fg:            #1a1a1a;
-  --text-subtle:   #5d6f86;
-  --text-muted:    #566b81;
-  --title:         #2a3b52;
+  /* reuse --tint and --brand from :root for consistent branding */
 
-  --border:        #d0d7e1;
-  --panel-bg:      #f5f7fa;
-  --surface-2:     #ffffff;
+  /* Depth knobs (white vs tint for light neutrals) */
+  --lt-white-0: 96%; --lt-tint-0: 4%;   /* page background */
+  --lt-white-1: 98%; --lt-tint-1: 2%;   /* panels */
+  --lt-white-2: 100%; --lt-tint-2: 0%;  /* inputs */
 
-  --input-bg:      var(--surface-2);
-  --input-border:  #d0d7e1;
+  /* Text ramps (black vs tint) */
+  --lt-black-strong: 92%; --lt-tint-strong: 8%;
+  --lt-black:        88%; --lt-tint:        12%;
+  --lt-black-muted:  65%; --lt-tint-muted:  35%;
+  --lt-black-subtle: 52%; --lt-tint-subtle: 48%;
 
-  --accent:        #10a37f;
-  --accent-contrast: #ffffff;
+  /* Borders */
+  --lt-border-fg: 20%; --lt-border-bg: 80%;
+  --lt-input-border-fg: 24%; --lt-input-border-bg: 76%;
 
-  --danger:        #b33;
-  --ok:            #0a7d43;
-  --err:           #c62828;
+  --bg:        color-mix(in oklch, white var(--lt-white-0), var(--tint) var(--lt-tint-0));
+  --panel-bg:  color-mix(in oklch, white var(--lt-white-1), var(--tint) var(--lt-tint-1));
+  --surface-2: color-mix(in oklch, white var(--lt-white-2), var(--tint) var(--lt-tint-2));
+
+  --fg-strong: color-mix(in oklch, black var(--lt-black-strong), var(--tint) var(--lt-tint-strong));
+  --fg:        color-mix(in oklch, black var(--lt-black),        var(--tint) var(--lt-tint));
+  --text-muted:  color-mix(in oklch, black var(--lt-black-muted),  var(--tint) var(--lt-tint-muted));
+  --text-subtle: color-mix(in oklch, black var(--lt-black-subtle), var(--tint) var(--lt-tint-subtle));
+  --title: var(--fg-strong);
+
+  --border:       color-mix(in oklch, var(--fg) var(--lt-border-fg),       var(--bg) var(--lt-border-bg));
+  --input-border: color-mix(in oklch, var(--fg) var(--lt-input-border-fg), var(--bg) var(--lt-input-border-bg));
+  --input-bg:     var(--surface-2);
+
+  --accent:         var(--brand);
+  --accent-contrast:#ffffff;
+  --accent-hover:   color-mix(in oklch, var(--brand) 75%, black 25%);
+  --accent-pressed: color-mix(in oklch, var(--brand) 70%, black 30%);
+
+  --ok:  oklch(0.55 0.13 150);
+  --err: oklch(0.56 0.18 25);
+  --danger: oklch(0.50 0.20 25);
 }
 
 /* =========================================================
@@ -104,10 +150,7 @@ body {
 
 img, svg, video { max-width: 100%; height: auto; }
 
-:focus-visible {
-  outline: var(--ring);
-  outline-offset: 2px;
-}
+:focus-visible { outline: var(--ring); outline-offset: 2px; }
 
 a { color: inherit; text-decoration: none; }
 
@@ -148,9 +191,7 @@ header .menu-list {
   padding: var(--space-1) 0;
   box-shadow: var(--shadow-1);
 }
-
 header .menu-list.visible { display: block; }
-
 header .menu-list li {
   padding: var(--space-1) var(--space-3);
   white-space: nowrap;
@@ -207,9 +248,9 @@ button {
   border-radius: var(--radius-2);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  transition: transform var(--speed-1) var(--ease-1);
+  transition: transform var(--speed-1) var(--ease-1), border-color var(--speed-1) var(--ease-1), background-color var(--speed-1) var(--ease-1);
 }
-button:hover { transform: translateY(-1px); }
+button:hover { transform: translateY(-1px); border-color: var(--accent); }
 button:active { transform: translateY(0); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -281,7 +322,7 @@ pre, code {
 .obj-card__title {
   margin: 0;
   font-size: 16px;
-  color: #cfe3ff;
+  color: var(--fg-strong);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -309,7 +350,7 @@ pre, code {
 .obj-card__foot { padding: 10px 12px; border-top: var(--border-w) solid var(--border); }
 .obj-card--selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 
-/* Button variants (optional utility class) */
+/* Button variants */
 .btn { padding: 6px 10px; border: var(--border-w) solid var(--border); border-radius: var(--radius-2); background: var(--panel-bg); color: var(--fg); cursor: pointer; }
 .btn--primary { border-color: var(--accent); }
 .btn--danger  { border-color: var(--danger); }
