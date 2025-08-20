@@ -2,6 +2,8 @@ import { DKClient } from './sdk.js';
 import { setupLLMServiceUI } from './llm_service.js';
 import { setupChatUI } from './chat.js';
 import { setupDocumentsUI } from './documents.js';
+import { setupPromptTemplatesUI } from './prompt_templates.js';
+import { setupLLMServiceAdminUI } from './llm_service_admin.js';
 import { initWindows } from '../../ui/js/windows.js';
 
 const $ = (id) => document.getElementById(id);
@@ -54,14 +56,34 @@ const removeBtn = $('remove');
 const clearDb = $('clearDb');
 const ingOut = $('ingOut');
 
-const tplList = $('tplList');
-const tplId = $('tplId');
-const tplGet = $('tplGet');
+const loadTemplates = $('loadTemplates');
+const tplSel = $('tplSel');
+const tplCard = $('tplCard');
 const userId = $('userId');
 const getSettings = $('getSettings');
-const miscOut = $('miscOut');
+
+const manageServices = $('manageServices');
+const newSvcProvider = $('newSvcProvider');
+const newSvcBaseUrl = $('newSvcBaseUrl');
+const newSvcAuth = $('newSvcAuth');
+const delSvcId = $('delSvcId');
+const modelSvcId = $('modelSvcId');
+const modelName = $('modelName');
+const modelModality = $('modelModality');
+const delModelId = $('delModelId');
+const createSvc = $('createSvc');
+const deleteSvc = $('deleteSvc');
+const createModel = $('createModel');
+const deleteModel = $('deleteModel');
+const svcAdminOut = $('svcAdminOut');
 
 initWindows({ menuId: 'windowMenu', containerId: 'desktop' });
+
+const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
+if (svcAdminWin) svcAdminWin.style.display = 'none';
+manageServices.addEventListener('click', () => {
+  if (svcAdminWin) svcAdminWin.style.display = 'block';
+});
 
 // ---- state ----
 let sdk = null;
@@ -174,6 +196,34 @@ setupLLMServiceUI({
   helpers: { ensureSDK, setBusy }
 });
 
+// ---- prompt templates ----
+setupPromptTemplatesUI({
+  getSDK: () => sdk,
+  elements: { loadTemplates, tplSel, tplCard, templateId },
+  helpers: { ensureSDK }
+});
+
+// ---- service admin ----
+setupLLMServiceAdminUI({
+  getSDK: () => sdk,
+  elements: {
+    createSvc,
+    deleteSvc,
+    createModel,
+    deleteModel,
+    newSvcProvider,
+    newSvcBaseUrl,
+    newSvcAuth,
+    delSvcId,
+    modelSvcId,
+    modelName,
+    modelModality,
+    delModelId,
+    out: svcAdminOut
+  },
+  helpers: { ensureSDK, setBusy, toastOK, toastERR }
+});
+
 // ---- ingest ----
 upload.addEventListener('click', async () => {
   try {
@@ -228,33 +278,13 @@ clearDb.addEventListener('click', async () => {
 });
 
 // ---- templates & settings ----
-tplList.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    const res = await sdk.templates.list();
-    toastOK(miscOut, res);
-  } catch (e) {
-    toastERR(miscOut, e);
-  }
-});
-
-tplGet.addEventListener('click', async () => {
-  try {
-    ensureSDK();
-    const res = await sdk.templates.get(tplId.value.trim());
-    toastOK(miscOut, res);
-  } catch (e) {
-    toastERR(miscOut, e);
-  }
-});
-
 getSettings.addEventListener('click', async () => {
   try {
     ensureSDK();
     const res = await sdk.settings.get(userId.value || 'local-user');
-    toastOK(miscOut, res);
+    console.log(res);
   } catch (e) {
-    toastERR(miscOut, e);
+    console.error(e);
   }
 });
 
@@ -271,7 +301,7 @@ getSettings.addEventListener('click', async () => {
     try { loadServices.click(); } catch {}
     try { refreshSel.click(); } catch {}
     try { listDocs.click(); } catch {}
-    try { tplList.click(); } catch {}
+    try { loadTemplates.click(); } catch {}
     try { getSettings.click(); } catch {}
   } catch (e) {
     // non-fatal

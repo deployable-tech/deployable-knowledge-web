@@ -28,6 +28,7 @@
         <div class="row">
           <button id="loadServices">Load Services</button>
           <button id="refreshSelection">Get Selection</button>
+          <button id="manageServices">Manage Services</button>
         </div>
         <div class="row">
           <label style="min-width:80px;">Service</label>
@@ -43,6 +44,31 @@
         <div id="serviceLst"></div>
         <div id="serviceCards"></div>
         <div id="modelCards"></div>
+      </section>
+
+      <section id="win-service-admin" data-win="service-admin" data-title="LLM Service Admin">
+        <h2>LLM Service Admin</h2>
+        <div class="row">
+          <input id="newSvcProvider" placeholder="provider" />
+          <input id="newSvcBaseUrl" placeholder="base URL" />
+          <input id="newSvcAuth" placeholder="auth ref" />
+          <button id="createSvc">Create Service</button>
+        </div>
+        <div class="row">
+          <input id="delSvcId" placeholder="service id" />
+          <button id="deleteSvc">Delete Service</button>
+        </div>
+        <div class="row">
+          <input id="modelSvcId" placeholder="service id" />
+          <input id="modelName" placeholder="model name" />
+          <input id="modelModality" placeholder="modality" />
+          <button id="createModel">Add Model</button>
+        </div>
+        <div class="row">
+          <input id="delModelId" placeholder="model id" />
+          <button id="deleteModel">Delete Model</button>
+        </div>
+        <pre id="svcAdminOut" class="mono" style="max-height:200px;"></pre>
       </section>
 
       <section id="win-search" data-win="search" data-title="Search">
@@ -121,15 +147,14 @@
       <section id="win-templates" data-win="templates" data-title="Templates & Settings">
         <h2>Templates & Settings</h2>
         <div class="row">
-          <button id="tplList">List Templates</button>
-          <input id="tplId" placeholder="template id…" />
-          <button id="tplGet">Get</button>
+          <button id="loadTemplates">Load Templates</button>
+          <select id="tplSel"></select>
         </div>
         <div class="row">
           <input id="userId" value="local-user" />
           <button id="getSettings">Get Settings</button>
         </div>
-        <pre id="miscOut" class="mono" style="max-height:200px;"></pre>
+        <div id="tplCard"></div>
       </section>
 
   </main>
