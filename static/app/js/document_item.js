@@ -5,15 +5,17 @@ export function createDocumentSchema({ onSegments } = {}) {
     modes: {
       mini: {
         elements: {
-          source: { type: 'text', format: 'title' }
-        }
+          title:  { type: 'text', format: 'title' },
+          source: { type: 'text' }
+        },
+        order: ['title','source']
       },
       default: {
         extends: 'mini',
         elements: {
           size: { type: 'number' }
         },
-        order: ['size'],
+        order: ['title','source','size'],
         actions: [
           {
             id: 'segments',
