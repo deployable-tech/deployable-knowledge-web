@@ -13,7 +13,12 @@ export function createSearchResultSchema(deps = {}) {
           score:       { type: 'number' },
           page:        { type: 'number' },
           segment:     {
-            render: (seg) => seg ? renderSegmentItem(seg, deps.segmentDeps, { mode: 'mini' }) : document.createTextNode('')
+            render: (seg) => {
+              if (!seg) return document.createTextNode('');
+              const mini = { ...seg };
+              if (!mini.preview && mini.text) mini.preview = mini.text;
+              return renderSegmentItem(mini, deps.segmentDeps, { mode: 'mini' });
+            }
           }
         },
         order: ['text','source','document_id','score','page','segment']

@@ -1,5 +1,5 @@
-export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers }) {
-  const { persona, templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
+export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona }) {
+  const { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
   const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {
@@ -35,7 +35,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
         userId: userId.value || 'local-user',
         serviceId: svcSel.value || undefined,
         modelId: modelSel.value || undefined,
-        persona: persona.value || '',
+        persona: (typeof getPersona === 'function' ? getPersona() : '') || '',
         templateId: templateId.value || 'rag_chat',
         topK: Number(topK.value) || 8,
         onMeta: (m) => { meta.textContent = `meta: ${typeof m === 'string' ? m : JSON.stringify(m)}`; },

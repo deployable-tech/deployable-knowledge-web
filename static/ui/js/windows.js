@@ -15,6 +15,15 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
     w.focus();
   };
 
+  const defaults = [
+    { left: 40,  top: 40 },
+    { left: 360, top: 40 },
+    { left: 680, top: 40 },
+    { left: 40,  top: 300 },
+    { left: 360, top: 300 },
+    { left: 680, top: 300 },
+  ];
+
   function buildWindow(section, idx) {
     const id = section.dataset.win || `win-${idx}`;
     const title = section.dataset.title || section.querySelector('h2')?.textContent || id;
@@ -24,8 +33,9 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
     wrap.dataset.id = id;
     wrap.tabIndex = 0;
     const saved = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
-    wrap.style.left = saved.left || `${40 + idx * 30}px`;
-    wrap.style.top = saved.top || `${40 + idx * 30}px`;
+    const def = defaults[idx] || { left: 40 + idx * 30, top: 40 + idx * 30 };
+    wrap.style.left = saved.left || `${def.left}px`;
+    wrap.style.top = saved.top || `${def.top}px`;
     if (saved.width) wrap.style.width = saved.width;
     if (saved.height) wrap.style.height = saved.height;
     if (saved.hidden) wrap.style.display = 'none';

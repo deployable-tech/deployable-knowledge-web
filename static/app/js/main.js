@@ -39,6 +39,8 @@ const segs = $('segs');
 const segView = $('segView');
 
 const persona = $('persona');
+const savePersona = $('savePersona');
+const cancelPersona = $('cancelPersona');
 const templateId = $('templateId');
 const msg = $('msg');
 const send = $('send');
@@ -203,12 +205,28 @@ setupDocumentsUI({
 });
 
 // ---- chat ----
+let personaText = '';
+try { personaText = localStorage.getItem('personaText') || ''; } catch {}
+persona.value = personaText;
+savePersona.addEventListener('click', () => {
+  personaText = persona.value;
+  try { localStorage.setItem('personaText', personaText); } catch {}
+  const w = document.querySelector('.window[data-id="persona"]');
+  if (w) w.style.display = 'none';
+});
+cancelPersona.addEventListener('click', () => {
+  persona.value = personaText;
+  const w = document.querySelector('.window[data-id="persona"]');
+  if (w) w.style.display = 'none';
+});
+
 setupChatUI({
   getSDK: () => sdk,
   ensureSession,
   getSessionId: () => sessionId,
-  elements: { persona, templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel },
-  helpers: { ensureSDK, setBusy }
+  elements: { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel },
+  helpers: { ensureSDK, setBusy },
+  getPersona: () => personaText
 });
 
 // ---- services/models ----
