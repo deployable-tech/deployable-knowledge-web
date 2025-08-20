@@ -15,6 +15,7 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
   const bringToFront = (w) => {
     zTop += 1;
     w.style.zIndex = zTop;
+    w.focus();
   };
 
   function buildWindow(section, idx) {
@@ -24,8 +25,13 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     const wrap = document.createElement('div');
     wrap.className = 'window';
     wrap.dataset.id = id;
-    wrap.style.left = `${40 + idx * 30}px`;
-    wrap.style.top = `${40 + idx * 30}px`;
+    wrap.tabIndex = 0;
+    const saved = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
+    wrap.style.left = saved.left || `${40 + idx * 30}px`;
+    wrap.style.top = saved.top || `${40 + idx * 30}px`;
+    if (saved.width) wrap.style.width = saved.width;
+    if (saved.height) wrap.style.height = saved.height;
+    if (saved.hidden) wrap.style.display = 'none';
     bringToFront(wrap);
 
     const bar = document.createElement('div');
@@ -94,6 +100,7 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
       document.addEventListener('mouseup', () => {
         document.removeEventListener('mousemove', onMove);
         clamp();
+        saveState();
       }, { once: true });
     });
 
@@ -105,9 +112,11 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
 
     minBtn.addEventListener('click', () => {
       body.style.display = body.style.display === 'none' ? '' : 'none';
+      saveState();
     });
     closeBtn.addEventListener('click', () => {
       wrap.style.display = 'none';
+      saveState();
     });
 
     wrap.style.resize = 'both';
@@ -115,7 +124,25 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     body.style.overflow = 'auto';
 
     // keep within bounds on resize
-    new ResizeObserver(clamp).observe(wrap);
+    new ResizeObserver(() => { clamp(); saveState(); }).observe(wrap);
+
+    function saveState() {
+      const st = {
+        left: wrap.style.left,
+        top: wrap.style.top,
+        width: wrap.style.width,
+        height: wrap.style.height,
+        hidden: wrap.style.display === 'none'
+      };
+      try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch {}
+    }
+
+    wrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        wrap.style.display = 'none';
+        saveState();
+      }
+    });
 
     registry.set(id, wrap);
     container.appendChild(wrap);

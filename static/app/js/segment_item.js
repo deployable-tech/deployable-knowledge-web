@@ -1,4 +1,5 @@
 import { renderWithModes } from '/static/ui/js/render.js';
+import { enableClickToggle } from '/static/ui/js/dom.js';
 
 export function createSegmentSchema({ sdk, segView } = {}) {
   return {
@@ -43,9 +44,6 @@ export function createSegmentSchema({ sdk, segView } = {}) {
 export function renderSegmentItem(seg, deps = {}, opts = {}) {
   const schema = createSegmentSchema(deps);
   const host = renderWithModes(seg, schema, { mode: opts.mode || 'mini' });
-  host.addEventListener('click', (e) => {
-    if (e.target.closest('button')) return;
-    host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
-  });
+  enableClickToggle(host);
   return host;
 }

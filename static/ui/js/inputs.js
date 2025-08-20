@@ -1,4 +1,5 @@
 // ./inputs.js - Renders the inputs based on schema
+import { el } from './dom.js';
 
 /* -------------------- inputs -------------------- */
 
@@ -155,23 +156,6 @@ function normalizeOptions(options) {
 
 function stringifyOptValue(v) { return v == null ? '' : String(v); }
 
-// shared element factory (same semantics as formats.el)
-export function el(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v == null) continue;
-    if (k === 'class' || k === 'className') node.className = String(v);
-    else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
-    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, String(v));
-  }
-  for (const c of children) {
-    if (c == null) continue;
-    if (c instanceof Node) node.appendChild(c);
-    else node.appendChild(document.createTextNode(String(c)));
-  }
-  return node;
-}
 
 
 

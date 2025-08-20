@@ -1,4 +1,5 @@
 import { renderWithModes } from '/static/ui/js/render.js';
+import { enableClickToggle } from '/static/ui/js/dom.js';
 
 export function createDocumentSchema({ onSegments } = {}) {
   return {
@@ -34,11 +35,6 @@ export function renderDocumentItem(doc, deps = {}, opts = {}) {
   const host = renderWithModes(data, schema, { mode: opts.mode ?? 'mini' });
 
   // click-to-toggle unless explicitly disabled
-  if (opts.clickToggle !== false && host?.getMode && host?.setMode) {
-    host.addEventListener('click', (e) => {
-      if (e.target.closest('button,[data-action]')) return;
-      host.setMode(host.getMode() === 'mini' ? 'default' : 'mini');
-    });
-  }
+  if (opts.clickToggle !== false) enableClickToggle(host);
   return host;
 }
