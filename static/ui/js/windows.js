@@ -1,8 +1,9 @@
-export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
+export function initWindows({ config = [], containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
   const container = document.getElementById(containerId) || document.body;
   const menu = document.getElementById(menuId);
   const menuBtn = document.getElementById(menuBtnId);
   const registry = new Map();
+  const elements = {};
   let zTop = 1;
 
   if (menu) {
@@ -24,18 +25,38 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
     { left: 680, top: 300 },
   ];
 
-  function buildWindow(section, idx) {
-    const id = section.dataset.win || `win-${idx}`;
-    const title = section.dataset.title || section.querySelector('h2')?.textContent || id;
+  function createElement(desc) {
+    const el = document.createElement(desc.tag || 'div');
+    if (desc.id) { el.id = desc.id; elements[desc.id] = el; }
+    if (desc.class) el.className = desc.class;
+    if (desc.text) el.textContent = desc.text;
+    if (desc.html) el.innerHTML = desc.html;
+    if (desc.attrs) {
+      for (const [k, v] of Object.entries(desc.attrs)) {
+        if (v === true) el.setAttribute(k, '');
+        else if (v !== false && v != null) el.setAttribute(k, v);
+      }
+    }
+    if (desc.children) {
+      for (const c of desc.children) {
+        el.appendChild(createElement(c));
+      }
+    }
+    return el;
+  }
+
+  function buildWindow(def, idx) {
+    const id = def.id || `win-${idx}`;
+    const title = def.title || id;
 
     const wrap = document.createElement('div');
     wrap.className = 'window';
     wrap.dataset.id = id;
     wrap.tabIndex = 0;
     const saved = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
-    const def = defaults[idx] || { left: 40 + idx * 30, top: 40 + idx * 30 };
-    wrap.style.left = saved.left || `${def.left}px`;
-    wrap.style.top = saved.top || `${def.top}px`;
+    const defPos = defaults[idx] || { left: 40 + idx * 30, top: 40 + idx * 30 };
+    wrap.style.left = saved.left || `${defPos.left}px`;
+    wrap.style.top = saved.top || `${defPos.top}px`;
     if (saved.width) wrap.style.width = saved.width;
     if (saved.height) wrap.style.height = saved.height;
     if (saved.hidden) wrap.style.display = 'none';
@@ -58,12 +79,11 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
 
     const body = document.createElement('div');
     body.className = 'window__body';
-    const h2 = section.querySelector('h2');
-    if (h2) h2.remove();
-    while (section.firstChild) {
-      body.appendChild(section.firstChild);
+    if (def.layout) {
+      for (const item of def.layout) {
+        body.appendChild(createElement(item));
+      }
     }
-    section.remove();
 
     wrap.appendChild(bar);
     wrap.appendChild(body);
@@ -168,7 +188,7 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
     }
   }
 
-  document.querySelectorAll('section[data-win]').forEach((s, idx) => buildWindow(s, idx));
+  config.forEach((def, idx) => buildWindow(def, idx));
 
   if (menu && menuBtn) {
     menuBtn.addEventListener('click', (e) => {
@@ -177,4 +197,6 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', me
     });
     document.addEventListener('click', () => menu.classList.remove('visible'));
   }
+
+  return { windows: registry, elements };
 }
