@@ -1,15 +1,12 @@
-export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } = {}) {
+export function initWindows({ containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
   const container = document.getElementById(containerId) || document.body;
   const menu = document.getElementById(menuId);
+  const menuBtn = document.getElementById(menuBtnId);
   const registry = new Map();
   let zTop = 1;
 
   if (menu) {
     menu.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Windows…';
-    menu.appendChild(placeholder);
   }
 
   const bringToFront = (w) => {
@@ -150,24 +147,24 @@ export function initWindows({ containerId = 'desktop', menuId = 'windowMenu' } =
     clamp();
 
     if (menu) {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = title;
-      menu.appendChild(opt);
+      const li = document.createElement('li');
+      li.textContent = title;
+      li.addEventListener('click', () => {
+        wrap.style.display = 'block';
+        bringToFront(wrap);
+        menu.classList.remove('visible');
+      });
+      menu.appendChild(li);
     }
   }
 
   document.querySelectorAll('section[data-win]').forEach((s, idx) => buildWindow(s, idx));
 
-  if (menu) {
-    menu.addEventListener('change', () => {
-      const id = menu.value;
-      const win = registry.get(id);
-      if (win) {
-        win.style.display = 'block';
-        bringToFront(win);
-      }
-      menu.value = '';
+  if (menu && menuBtn) {
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('visible');
     });
+    document.addEventListener('click', () => menu.classList.remove('visible'));
   }
 }

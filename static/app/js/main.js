@@ -41,7 +41,6 @@ const persona = $('persona');
 const templateId = $('templateId');
 const msg = $('msg');
 const send = $('send');
-const stream = $('stream');
 const meta = $('meta');
 const chatOut = $('chatOut');
 
@@ -74,7 +73,7 @@ const createModel = $('createModel');
 const deleteModel = $('deleteModel');
 const svcAdminOut = $('svcAdminOut');
 
-initWindows({ menuId: 'windowMenu', containerId: 'desktop' });
+initWindows({ menuId: 'windowMenu', menuBtnId: 'windowMenuBtn', containerId: 'desktop' });
 
 const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
 if (svcAdminWin) svcAdminWin.style.display = 'none';
@@ -184,7 +183,7 @@ setupChatUI({
   getSDK: () => sdk,
   ensureSession,
   getSessionId: () => sessionId,
-  elements: { persona, templateId, topK, msg, send, stream, meta, chatOut, userId, svcSel, modelSel },
+  elements: { persona, templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel },
   helpers: { ensureSDK, setBusy }
 });
 

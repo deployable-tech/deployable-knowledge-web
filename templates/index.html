@@ -10,9 +10,10 @@
 </head>
 <body>
   <header>
-    <select id="windowMenu">
-      <option value="">Windows…</option>
-    </select>
+    <div class="menu">
+      <button id="windowMenuBtn">Windows</button>
+      <ul id="windowMenu" class="menu-list"></ul>
+    </div>
   </header>
 
   <main id="desktop">
@@ -110,7 +111,6 @@
           <textarea id="msg" placeholder="Ask your system something grounded…"></textarea>
           <div class="row">
             <button id="send">Send</button>
-            <button id="stream">Stream</button>
             <span id="meta" class="subtle mono"></span>
           </div>
         </div>
@@ -118,10 +118,7 @@
 
       <section id="win-persona" data-win="persona" data-title="Persona">
         <h2>Persona</h2>
-        <div class="row">
-          <label>Persona</label>
-          <input id="persona" placeholder="optional persona tag" />
-        </div>
+        <textarea id="persona" placeholder="optional persona"></textarea>
       </section>
 
 

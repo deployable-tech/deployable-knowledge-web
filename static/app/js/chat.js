@@ -1,5 +1,5 @@
 export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers }) {
-  const { persona, templateId, topK, msg, send, stream, meta, chatOut, userId, svcSel, modelSel } = elements;
+  const { persona, templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
   const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {
@@ -28,35 +28,6 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
       const userText = msg.value;
       appendMessage('user', userText);
       msg.value = '';
-      const res = await sdk.chat.send({
-        message: userText,
-        sessionId: getSessionId(),
-        userId: userId.value || 'local-user',
-        serviceId: svcSel.value || undefined,
-        modelId: modelSel.value || undefined,
-        persona: persona.value || '',
-        templateId: templateId.value || 'rag_chat',
-        topK: Number(topK.value) || 8
-      });
-      appendMessage('bot', res.response);
-    } catch (e) {
-      appendMessage('bot', e?.message || String(e));
-    } finally {
-      setBusy(send, false);
-    }
-  });
-
-  stream.addEventListener('click', async () => {
-    try {
-      ensureSDK();
-      const sdk = getSDK();
-      setBusy(stream, true);
-      await ensureSession();
-      meta.textContent = '';
-      const userText = msg.value;
-      appendMessage('user', userText);
-      msg.value = '';
-      const controller = new AbortController();
       const botDiv = appendMessage('bot', '');
       const p = {
         message: userText,
@@ -67,7 +38,6 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
         persona: persona.value || '',
         templateId: templateId.value || 'rag_chat',
         topK: Number(topK.value) || 8,
-        signal: controller.signal,
         onMeta: (m) => { meta.textContent = `meta: ${typeof m === 'string' ? m : JSON.stringify(m)}`; },
         onToken: (t) => { botDiv.textContent += t; chatOut.scrollTop = chatOut.scrollHeight; },
         onDone: (final) => {
@@ -81,7 +51,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
     } catch (e) {
       appendMessage('bot', e?.message || String(e));
     } finally {
-      setBusy(stream, false);
+      setBusy(send, false);
     }
   });
 }
