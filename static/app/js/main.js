@@ -32,6 +32,7 @@ const doSearch = $('doSearch');
 const searchOut = $('searchOut');
 
 const newChat = $('newChat');
+const listSessions = $('listSessions');
 const sessionList = $('sessionList');
 
 const listDocs = $('listDocs');
@@ -262,7 +263,7 @@ setupChatHistoryUI({
     });
     chatOut.scrollTop = chatOut.scrollHeight;
   },
-  elements: { sessionList, newChat },
+  elements: { sessionList, listSessions, newChat },
   helpers: { ensureSDK, setBusy, toastERR }
 });
 
