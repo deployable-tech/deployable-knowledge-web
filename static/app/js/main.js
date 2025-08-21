@@ -7,6 +7,7 @@ import { setupLLMServiceAdminUI, serviceAdminWindow } from './llm_service_admin.
 import { renderSearchResultItem } from './search_result_item.js';
 import { setupChatHistoryUI, historyWindow } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
+import { layoutWindows, LayoutModes } from '../../ui/js/layout-windows.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
@@ -56,12 +57,62 @@ const windows = [
 ];
 
 // ---- build windows ----
-const { showWindow, elements } = initWindows({
+const { windows: windowRegistry, showWindow, elements } = initWindows({
   config: windows,
   menuId: 'windowMenu',
   menuBtnId: 'windowMenuBtn',
   containerId: 'desktop'
 });
+
+function applyLayout(mode) {
+  const container = document.getElementById('desktop');
+  if (!container) return;
+  const ws = { width: container.clientWidth, height: container.clientHeight };
+  const openWins = Array.from(windowRegistry.values()).filter(w => w.style.display !== 'none');
+  const winData = openWins.map(w => {
+    const cs = getComputedStyle(w);
+    return {
+      id: w.dataset.id,
+      width: w.offsetWidth,
+      height: w.offsetHeight,
+      minWidth: parseInt(cs.minWidth) || 100,
+      minHeight: parseInt(cs.minHeight) || 100,
+    };
+  });
+  let layoutMode = LayoutModes.TILE;
+  if (mode === 'cascade') layoutMode = LayoutModes.CASCADE;
+  else if (mode === 'smart') layoutMode = LayoutModes.SMART;
+  const layout = layoutWindows(ws, winData, layoutMode);
+  layout.forEach(pos => {
+    const w = windowRegistry.get(String(pos.id));
+    if (!w) return;
+    w.style.left = pos.x + 'px';
+    w.style.top = pos.y + 'px';
+    w.style.width = pos.width + 'px';
+    w.style.height = pos.height + 'px';
+    try {
+      const st = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height, hidden: false };
+      localStorage.setItem(`win:${pos.id}`, JSON.stringify(st));
+    } catch (e) {}
+  });
+}
+
+const layoutMenu = document.getElementById('layoutMenu');
+const layoutMenuBtn = document.getElementById('layoutMenuBtn');
+if (layoutMenu && layoutMenuBtn) {
+  layoutMenuBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    layoutMenu.classList.toggle('visible');
+  });
+  layoutMenu.addEventListener('click', e => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    const action = li.dataset.action;
+    if (action) applyLayout(action);
+    layoutMenu.classList.remove('visible');
+  });
+  document.addEventListener('click', () => layoutMenu.classList.remove('visible'));
+}
 
 function openChat() {
   showWindow('chat');
