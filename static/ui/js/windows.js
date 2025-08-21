@@ -27,6 +27,33 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     { left: 680, top: 300 },
   ];
 
+  function clamp(wrap) {
+    const cW = container.clientWidth;
+    const cH = container.clientHeight;
+    if (!cW || !cH || !wrap) return;
+    const maxX = cW - wrap.offsetWidth;
+    const maxY = cH - wrap.offsetHeight;
+
+    if (wrap.offsetLeft < 0) {
+      wrap.style.left = '0px';
+    } else if (wrap.offsetLeft > maxX) {
+      wrap.style.left = `${Math.max(maxX, 0)}px`;
+    }
+
+    if (wrap.offsetTop < 0) {
+      wrap.style.top = '0px';
+    } else if (wrap.offsetTop > maxY) {
+      wrap.style.top = `${Math.max(maxY, 0)}px`;
+    }
+
+    if (wrap.offsetWidth > container.clientWidth) {
+      wrap.style.width = `${container.clientWidth}px`;
+    }
+    if (wrap.offsetHeight > container.clientHeight) {
+      wrap.style.height = `${container.clientHeight}px`;
+    }
+  }
+
   function createElement(desc) {
     if (desc.collapsible) {
       const det = document.createElement('details');
@@ -101,10 +128,10 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         if (st.top) w.style.top = st.top;
         if (st.width) w.style.width = st.width;
         if (st.height) w.style.height = st.height;
-        clamp();
+        clamp(w);
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch (e) {clamp();}
+      } catch (e) {clamp(w);}
     }
   }
 
@@ -151,34 +178,6 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     wrap.appendChild(bar);
     wrap.appendChild(body);
 
-    // bounds helper
-    const clamp = () => {
-      const cW = container.clientWidth;
-      const cH = container.clientHeight;
-      if (!cW || !cH) return;
-      const maxX = cW - wrap.offsetWidth;
-      const maxY = cH - wrap.offsetHeight;
-
-      if (wrap.offsetLeft < 0) {
-        wrap.style.left = '0px';
-      } else if (wrap.offsetLeft > maxX) {
-        wrap.style.left = `${Math.max(maxX, 0)}px`;
-      }
-
-      if (wrap.offsetTop < 0) {
-        wrap.style.top = '0px';
-      } else if (wrap.offsetTop > maxY) {
-        wrap.style.top = `${Math.max(maxY, 0)}px`;
-      }
-
-      if (wrap.offsetWidth > container.clientWidth) {
-        wrap.style.width = `${container.clientWidth}px`;
-      }
-      if (wrap.offsetHeight > container.clientHeight) {
-        wrap.style.height = `${container.clientHeight}px`;
-      }
-    };
-
     // drag
     bar.addEventListener('mousedown', (e) => {
       bringToFront(wrap);
@@ -187,12 +186,12 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       function onMove(ev) {
         wrap.style.left = `${ev.clientX - startX}px`;
         wrap.style.top = `${ev.clientY - startY}px`;
-        clamp();
+        clamp(wrap);
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', () => {
         document.removeEventListener('mousemove', onMove);
-        clamp();
+        clamp(wrap);
         saveState();
       }, { once: true });
     });
@@ -211,7 +210,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     body.style.overflow = 'auto';
 
     // keep within bounds on resize
-    new ResizeObserver(() => { clamp(); saveState(); }).observe(wrap);
+    new ResizeObserver(() => { clamp(wrap); saveState(); }).observe(wrap);
 
     function saveState() {
       const st = {
@@ -231,7 +230,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     registry.set(id, wrap);
     container.appendChild(wrap);
 
-    requestAnimationFrame(clamp);
+    requestAnimationFrame(() => clamp(wrap));
  if (menu) {
    const li = document.createElement('li');
    li.textContent = title;
