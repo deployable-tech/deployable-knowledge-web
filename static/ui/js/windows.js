@@ -54,11 +54,11 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
   }
 
-  function createElement(desc) {
+  function createElement(desc, winId) {
     if (desc.collapsible) {
       const det = document.createElement('details');
       det.className = `collapsible${desc.class ? ' ' + desc.class : ''}`;
-      if (desc.id) { det.id = desc.id; elements[desc.id] = det; }
+      if (desc.id) { det.id = desc.id; if (winId) elements[winId][desc.id] = det; }
       if (desc.attrs) {
         for (const [k, v] of Object.entries(desc.attrs)) {
           if (v === true) det.setAttribute(k, '');
@@ -73,7 +73,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       body.className = 'row';
       if (desc.children) {
         for (const c of desc.children) {
-          body.appendChild(createElement(c));
+          body.appendChild(createElement(c, winId));
         }
       }
       det.appendChild(body);
@@ -81,7 +81,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
 
     const el = document.createElement(desc.tag || 'div');
-    if (desc.id) { el.id = desc.id; elements[desc.id] = el; }
+    if (desc.id) { el.id = desc.id; if (winId) elements[winId][desc.id] = el; }
     if (desc.class) el.className = desc.class;
     if (desc.text) el.textContent = desc.text;
     if (desc.html) el.innerHTML = desc.html;
@@ -93,7 +93,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
     if (desc.children) {
       for (const c of desc.children) {
-        el.appendChild(createElement(c));
+        el.appendChild(createElement(c, winId));
       }
     }
     return el;
@@ -139,6 +139,8 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     const id = def.id || `win-${idx}`;
     const title = def.title || id;
 
+    elements[id] = {};
+
     const wrap = document.createElement('div');
     wrap.className = 'window';
     wrap.dataset.id = id;
@@ -171,7 +173,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     body.className = 'window__body';
     if (def.layout) {
       for (const item of def.layout) {
-        body.appendChild(createElement(item));
+        body.appendChild(createElement(item, id));
       }
     }
 

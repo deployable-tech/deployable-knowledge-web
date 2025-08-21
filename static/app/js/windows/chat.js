@@ -21,8 +21,9 @@ export const chatWindow = {
   ]
 };
 
-export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona }) {
-  const { templateId, topK, msg, send, meta, chatOut, userId, svcSel, modelSel } = elements;
+export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona, deps = {} }) {
+  const { msg, send, meta, chatOut } = elements;
+  const { templateId, topK, userId, svcSel, modelSel } = deps;
   const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {

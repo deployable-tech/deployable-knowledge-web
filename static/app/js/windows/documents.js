@@ -48,8 +48,8 @@ export const documentsWindow = {
 };
 
 export function setupDocumentsUI({ getSDK, elements, helpers }) {
-  const { listDocs, docCount, docs, segSource, listSegs, segs, segView } = elements;
-  const { ensureSDK, setBusy, toastERR } = helpers;
+  const { listDocs, docCount, docs, segSource, listSegs, segs, segView, files, upload, ingestAll, removeSource, remove, clearDb, ingOut } = elements;
+  const { ensureSDK, setBusy, toastERR, toastOK, sdkHandler } = helpers;
 
   listDocs.addEventListener('click', async () => {
     try {
@@ -93,4 +93,9 @@ export function setupDocumentsUI({ getSDK, elements, helpers }) {
       setBusy(listSegs, false);
     }
   });
+
+  upload.addEventListener('click', sdkHandler(upload, ingOut, () => getSDK().ingest.upload(files.files)));
+  ingestAll.addEventListener('click', sdkHandler(ingestAll, ingOut, () => getSDK().ingest.ingestAll()));
+  remove.addEventListener('click', sdkHandler(remove, ingOut, () => getSDK().ingest.remove(removeSource.value.trim())));
+  clearDb.addEventListener('click', sdkHandler(clearDb, ingOut, () => getSDK().ingest.clearDb()));
 }
