@@ -28,11 +28,14 @@ console.log({ tiled, cascaded, smart });
 */
 
 
+// ADD this constant to your LayoutModes
 export const LayoutModes = Object.freeze({
   TILE: "tile",
   CASCADE: "cascade",
   SMART: "smart",
+  MIN_RESIZE: "min_resize", // NEW
 });
+
 
 /**
  * Main entry
@@ -56,14 +59,11 @@ export function layoutWindows(workspace, windows, mode = "tile", opts = {}) {
   }));
 
   switch (mode) {
-    case LayoutModes.TILE:
-      return tileLayout(ws, list, opts);
-    case LayoutModes.CASCADE:
-      return cascadeLayout(ws, list, opts);
-    case LayoutModes.SMART:
-      return smartLayout(ws, list, opts);
-    default:
-      return tileLayout(ws, list, opts);
+    case LayoutModes.TILE:       return tileLayout(ws, list, opts);
+    case LayoutModes.CASCADE:    return cascadeLayout(ws, list, opts);
+    case LayoutModes.SMART:      return smartLayout(ws, list, opts);
+    case LayoutModes.MIN_RESIZE: return minResizeLayout(ws, list, opts);
+    default:                     return tileLayout(ws, list, opts);
   }
 }
 
@@ -334,3 +334,173 @@ function sum(a) { return a.reduce((t, v) => t + v, 0); }
 function clampNum(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function round(v) { return Math.round(v); }
 function pick(obj, keys) { const o = {}; for (const k of keys) o[k] = obj[k]; return o; }
+
+
+
+
+
+
+/* -------------------- MIN-RESIZE (maximize uniform scale) -------------------- */
+/**
+ * Minimizes total resizing by finding the largest uniform scale 's' (<= 1)
+ * such that all windows can be packed into the workspace using either
+ * row-shelf (NFDH) or column-shelf (NFDW) packing. Keeps aspect ratios.
+ *
+ * Options:
+ *  - gap?: number (default workspace.gap)
+ *  - padding?: number (default workspace.padding)
+ *  - prefer?: "row" | "col" (tie-breaker; default "row")
+ */
+export function minResizeLayout(workspace, windows, opts = {}) {
+  const gap = num(opts.gap, workspace.gap);
+  const padding = num(opts.padding, workspace.padding);
+  const prefer = opts.prefer === "col" ? "col" : "row";
+
+  const W = Math.max(1, workspace.width - 2 * padding);
+  const H = Math.max(1, workspace.height - 2 * padding);
+  if (!windows.length) return [];
+
+  // Upper bound: scale enough so each rect individually fits inside W x H
+  const maxW = Math.max(...windows.map(w => w.width));
+  const maxH = Math.max(...windows.map(w => w.height));
+  const sUpper = Math.min(1, W / maxW, H / maxH);
+
+  // Binary search the largest scale that fits by either packing.
+  let lo = 0, hi = sUpper, best = null;
+  for (let it = 0; it < 24; it++) {
+    const mid = (lo + hi) / 2;
+    const rowTry = tryShelfRows(windows, mid, { W, H, gap, padding });
+    const colTry = tryShelfCols(windows, mid, { W, H, gap, padding });
+
+    const rowFits = rowTry.fits;
+    const colFits = colTry.fits;
+
+    if (rowFits || colFits) {
+      // At this scale, at least one orientation fits: accept and go bigger.
+      // Choose the better of the two at this scale:
+      const pick = pickBetter(rowTry, colTry, prefer);
+      best = { scale: mid, result: pick };
+      lo = mid;
+    } else {
+      // Too big: go smaller.
+      hi = mid;
+    }
+  }
+
+  // If nothing fit (shouldn’t happen; s->0 always fits), fallback:
+  if (!best) {
+    const tiny = tryShelfRows(windows, Math.min(1, 0.01), { W, H, gap, padding });
+    best = { scale: tiny.scale, result: tiny };
+  }
+
+  // Map back to user-facing rectangles; preserve input order
+  const placed = best.result.placed;
+  const out = new Array(windows.length);
+  for (const p of placed) {
+    const w = clampNum(Math.floor(p.width), 1, workspace.width);
+    const h = clampNum(Math.floor(p.height), 1, workspace.height);
+    const x = clampNum(Math.floor(p.x), 0, workspace.width - w);
+    const y = clampNum(Math.floor(p.y), 0, workspace.height - h);
+    out[p._idx] = { id: p.id, x, y, width: w, height: h };
+  }
+  return out;
+}
+
+// ---------- Helpers for MIN-RESIZE ----------
+
+function tryShelfRows(windows, s, { W, H, gap, padding }) {
+  // Scale windows uniformly and sort by height (NFDH)
+  const scaled = windows.map((w, i) => ({
+    id: w.id, _idx: w._idx,
+    width: Math.max(1, Math.floor(w.width * s)),
+    height: Math.max(1, Math.floor(w.height * s)),
+  })).sort((a, b) => b.height - a.height);
+
+  let x = padding, y = padding, rowH = 0;
+  const placed = [];
+
+  for (const r of scaled) {
+    if (r.width > W) return { fits: false, placed, usedH: Infinity, scale: s }; // cannot place
+    // wrap to next row if this one would overflow
+    if (x > padding && x + r.width - padding > W) {
+      // move to next row
+      y += rowH + gap;
+      x = padding;
+      rowH = 0;
+    }
+    if (y - padding > H) return { fits: false, placed, usedH: Infinity, scale: s };
+
+    placed.push({ ...r, x, y });
+    x += r.width + gap;
+    rowH = Math.max(rowH, r.height);
+  }
+
+  const usedH = (placed.length ? (y - padding + rowH) : 0);
+  const fits = usedH <= H;
+  // Map placed back to original order for output consistency
+  placed.sort((a, b) => a._idx - b._idx);
+  return { fits, placed, usedH, scale: s, mode: "row" };
+}
+
+function tryShelfCols(windows, s, { W, H, gap, padding }) {
+  // Scale windows uniformly and sort by width (NFDW)
+  const scaled = windows.map((w, i) => ({
+    id: w.id, _idx: w._idx,
+    width: Math.max(1, Math.floor(w.width * s)),
+    height: Math.max(1, Math.floor(w.height * s)),
+  })).sort((a, b) => b.width - a.width);
+
+  let x = padding, y = padding, colW = 0;
+  const placed = [];
+
+  for (const r of scaled) {
+    if (r.height > H) return { fits: false, placed, usedW: Infinity, scale: s };
+    // wrap to next column if this one would overflow
+    if (y > padding && y + r.height - padding > H) {
+      x += colW + gap;
+      y = padding;
+      colW = 0;
+    }
+    if (x - padding > W) return { fits: false, placed, usedW: Infinity, scale: s };
+
+    placed.push({ ...r, x, y });
+    y += r.height + gap;
+    colW = Math.max(colW, r.width);
+  }
+
+  // total width used = sum of column widths plus gaps already counted via x
+  // Easier: recompute by scanning columns from placed positions.
+  let usedW = 0;
+  if (placed.length) {
+    // collect unique column x groups
+    const columns = new Map();
+    for (const p of placed) columns.set(p.x, Math.max(columns.get(p.x) || 0, p.width));
+    usedW = [...columns.values()].reduce((t, w) => t + w, 0) + gap * Math.max(0, columns.size - 1);
+  }
+
+  const fits = usedW <= W;
+  placed.sort((a, b) => a._idx - b._idx);
+  return { fits, placed, usedW, scale: s, mode: "col" };
+}
+
+function pickBetter(rowTry, colTry, prefer = "row") {
+  const rFit = rowTry.fits ? 1 : 0;
+  const cFit = colTry.fits ? 1 : 0;
+  if (rFit && !cFit) return rowTry;
+  if (cFit && !rFit) return colTry;
+  if (rFit && cFit) {
+    // Both fit at this scale: prefer the one that leaves less unused span.
+    // Row: less unused vertical; Col: less unused horizontal.
+    const rUnused = rowTry.usedH ?? Infinity;
+    const cUnused = colTry.usedW ?? Infinity;
+    // Normalize by workspace dimension for a fair-ish comparison
+    const rScore = rUnused; // lower is better
+    const cScore = cUnused;
+    if (rScore < cScore) return rowTry;
+    if (cScore < rScore) return colTry;
+    return prefer === "col" ? colTry : rowTry;
+  }
+  // Neither fit (shouldn't reach here when called from the search "fit" branch)
+  return prefer === "col" ? colTry : rowTry;
+}
+
