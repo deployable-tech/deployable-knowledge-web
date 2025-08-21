@@ -45,6 +45,42 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     return el;
   }
 
+  function hideWindow(id) {
+    const w = registry.get(id);
+    if (w) {
+      w.style.display = 'none';
+      try {
+        const st = {
+          left: w.style.left,
+          top: w.style.top,
+          width: w.style.width,
+          height: w.style.height,
+          hidden: true
+        };
+        localStorage.setItem(`win:${id}`, JSON.stringify(st));
+      } catch (e) {}
+    }
+  }
+
+  function showWindow(id) {
+    const w = registry.get(id);
+    console.log(id);
+    if (w) {
+      w.style.display = '';
+      bringToFront(w);
+      try {
+        const st = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
+        if (st.left) w.style.left = st.left;
+        if (st.top) w.style.top = st.top;
+        if (st.width) w.style.width = st.width;
+        if (st.height) w.style.height = st.height;
+        clamp();
+        st.hidden = false;
+        localStorage.setItem(`win:${id}`, JSON.stringify(st));
+      } catch (e) {clamp();}
+    }
+  }
+
   function buildWindow(def, idx) {
     const id = def.id || `win-${idx}`;
     const title = def.title || id;
@@ -90,8 +126,11 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     // bounds helper
     const clamp = () => {
-      const maxX = container.clientWidth - wrap.offsetWidth;
-      const maxY = container.clientHeight - wrap.offsetHeight;
+      const cW = container.clientWidth;
+      const cH = container.clientHeight;
+      if (!cW || !cH) return;
+      const maxX = cW - wrap.offsetWidth;
+      const maxY = cH - wrap.offsetHeight;
 
       if (wrap.offsetLeft < 0) {
         wrap.style.left = '0px';
@@ -137,14 +176,8 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     wrap.addEventListener('mousedown', () => bringToFront(wrap));
 
-    minBtn.addEventListener('click', () => {
-      body.style.display = body.style.display === 'none' ? '' : 'none';
-      saveState();
-    });
-    closeBtn.addEventListener('click', () => {
-      wrap.style.display = 'none';
-      saveState();
-    });
+    minBtn.addEventListener('click', () => hideWindow(id));
+    closeBtn.addEventListener('click', () => hideWindow(id));
 
     wrap.style.resize = 'both';
     wrap.style.overflow = 'hidden';
@@ -161,42 +194,55 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         height: wrap.style.height,
         hidden: wrap.style.display === 'none'
       };
-      try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch {}
+      try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch (e) {}
     }
 
     wrap.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        wrap.style.display = 'none';
-        saveState();
-      }
+      if (e.key === 'Escape') hideWindow(id);
     });
 
     registry.set(id, wrap);
     container.appendChild(wrap);
 
-    clamp();
-
-    if (menu) {
-      const li = document.createElement('li');
-      li.textContent = title;
-      li.addEventListener('click', () => {
-        wrap.style.display = 'block';
-        bringToFront(wrap);
-        menu.classList.remove('visible');
-      });
-      menu.appendChild(li);
-    }
+    requestAnimationFrame(clamp);
+ if (menu) {
+   const li = document.createElement('li');
+   li.textContent = title;
+   li.dataset.id  = id;
+   li.dataset.win = id;        // <-- store id on the element
+   menu.appendChild(li);
+ }
+    // if (menu) {
+    //   const li = document.createElement('li');
+    //   li.textContent = title;
+    //   li.addEventListener('click', () => {
+    //     showWindow(id);
+    //     menu.classList.remove('visible');
+    //   });
+    //   menu.appendChild(li);
+    // }
   }
+
+
 
   config.forEach((def, idx) => buildWindow(def, idx));
 
-  if (menu && menuBtn) {
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.toggle('visible');
-    });
-    document.addEventListener('click', () => menu.classList.remove('visible'));
-  }
+ if (menu && menuBtn) {
+   menuBtn.addEventListener('click', (e) => {
+     e.stopPropagation();
+     menu.classList.toggle('visible');
+   });
+   // Delegate clicks to whichever <li> was hit
+   menu.addEventListener('click', (e) => {
+     const li = e.target.closest('li');
+     if (!li) return;
+     const id = li.dataset.win || li.dataset.id || li.getAttribute('data-id');
+     console.log(id);
+     if (id) showWindow(id);
+     menu.classList.remove('visible');
+   });
+   document.addEventListener('click', () => menu.classList.remove('visible'));
+ }
 
-  return { windows: registry, elements };
+  return { windows: registry, elements, showWindow };
 }

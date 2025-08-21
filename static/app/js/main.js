@@ -56,12 +56,18 @@ const windows = [
 ];
 
 // ---- build windows ----
-const { elements } = initWindows({
+const { showWindow, elements } = initWindows({
   config: windows,
   menuId: 'windowMenu',
   menuBtnId: 'windowMenuBtn',
   containerId: 'desktop'
 });
+
+function openChat() {
+  showWindow('chat');
+}
+window.openChat = openChat;
+window.showWindow = showWindow;
 
 // ---- elements ----
 const {
@@ -130,7 +136,7 @@ const {
 const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
 if (svcAdminWin) svcAdminWin.style.display = 'none';
 manageServices.addEventListener('click', () => {
-  if (svcAdminWin) svcAdminWin.style.display = 'block';
+  showWindow('service-admin');
 });
 
 // ---- state ----
@@ -287,8 +293,7 @@ setupChatHistoryUI({
   getSDK: () => sdk,
   setSession: (id) => setSession(id),
   renderHistory: (s) => {
-    const chatWin = document.querySelector('.window[data-id="chat"]');
-    if (chatWin) chatWin.style.display = 'block';
+    showWindow('chat');
     chatOut.innerHTML = '';
     (s.history || []).forEach(pair => {
       const [u, b] = pair;
