@@ -8,6 +8,7 @@ import { renderSearchResultItem } from './search_result_item.js';
 import { setupChatHistoryUI, historyWindow } from './chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
 import { layoutWindows, LayoutModes } from '../../ui/js/layout-windows.js';
+import { createMenu } from '../../ui/js/menu.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
@@ -97,22 +98,16 @@ function applyLayout(mode) {
   });
 }
 
-const layoutMenu = document.getElementById('layoutMenu');
-const layoutMenuBtn = document.getElementById('layoutMenuBtn');
-if (layoutMenu && layoutMenuBtn) {
-  layoutMenuBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    layoutMenu.classList.toggle('visible');
-  });
-  layoutMenu.addEventListener('click', e => {
-    const li = e.target.closest('li');
-    if (!li) return;
-    const action = li.dataset.action;
-    if (action) applyLayout(action);
-    layoutMenu.classList.remove('visible');
-  });
-  document.addEventListener('click', () => layoutMenu.classList.remove('visible'));
-}
+createMenu({
+  containerId: 'layoutMenu',
+  buttonText: 'Layout',
+  items: [
+    { label: 'Cascade', action: 'cascade' },
+    { label: 'Tile', action: 'tile' },
+    { label: 'Smart Layout', action: 'smart' },
+  ],
+  onSelect: applyLayout,
+});
 
 function openChat() {
   showWindow('chat');
