@@ -175,10 +175,8 @@ setupLLMServiceUI({
 
 setupPromptTemplatesUI({
   getSDK: () => sdk,
-  setSDK: (s) => { sdk = s; window.sdk = s; },
-  ensureSession,
   elements: elements.templates,
-  helpers: { ensureSDK, setBusy }
+  helpers: { ensureSDK }
 });
 
 setupLLMServiceAdminUI({
@@ -191,10 +189,10 @@ setupLLMServiceAdminUI({
 (async function boot() {
   try {
     sdk = new DKClient({ baseUrl: elements.templates.base.value });
+    window.sdk = sdk;
     await sdk.auth.beginUser();
     const res = await sdk.sessions.ensure();
     sessionId = res.session_id;
-    elements.templates.sid.textContent = `session_id: ${sessionId}`;
 
     // auto-update windows on boot
     try { elements.services.loadServices.click(); } catch {}

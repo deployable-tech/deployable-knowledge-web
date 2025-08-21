@@ -1,4 +1,3 @@
-import { DKClient } from '../sdk.js';
 import { renderTemplateCard } from '../items/prompt_template_item.js';
 
 export const templatesWindow = {
@@ -9,11 +8,7 @@ export const templatesWindow = {
       tag: 'div',
       class: 'row',
       children: [
-        { tag: 'input', id: 'base', attrs: { size: '42' } },
-        { tag: 'button', id: 'init', text: 'Init SDK' },
-        { tag: 'button', id: 'prime', text: 'Prime User Session' },
-        { tag: 'button', id: 'ensure', text: 'Ensure Session' },
-        { tag: 'span', id: 'sid', class: 'mono subtle' }
+        { tag: 'input', id: 'base', attrs: { size: '42' } }
       ]
     },
     {
@@ -44,9 +39,9 @@ export const templatesWindow = {
   ]
 };
 
-export function setupPromptTemplatesUI({ getSDK, setSDK, ensureSession, elements, helpers }) {
-  const { base, init: initBtn, prime, ensure, sid, loadTemplates, tplSel, tplCard, templateId, userId, getSettings } = elements;
-  const { ensureSDK, setBusy } = helpers;
+export function setupPromptTemplatesUI({ getSDK, elements, helpers }) {
+  const { loadTemplates, tplSel, tplCard, templateId, userId, getSettings } = elements;
+  const { ensureSDK } = helpers;
 
   const templates = new Map();
 
@@ -94,44 +89,6 @@ export function setupPromptTemplatesUI({ getSDK, setSDK, ensureSession, elements
 
   loadTemplates.addEventListener('click', fetchTemplates);
   tplSel.addEventListener('change', () => renderTemplate(tplSel.value));
-
-  initBtn.addEventListener('click', () => {
-    try {
-      const sdk = new DKClient({ baseUrl: base.value });
-      setSDK(sdk);
-      console.log('SDK ready.');
-      document.dispatchEvent(new Event('dk-sdk-ready'));
-    } catch (e) {
-      console.error(e);
-    }
-  });
-
-  prime.addEventListener('click', async () => {
-    try {
-      ensureSDK();
-      const sdk = getSDK();
-      setBusy(prime, true);
-      await sdk.auth.beginUser();
-      console.log('User session primed via /begin');
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setBusy(prime, false);
-    }
-  });
-
-  ensure.addEventListener('click', async () => {
-    try {
-      setBusy(ensure, true);
-      const id = await ensureSession();
-      sid.textContent = `session_id: ${id}`;
-      console.log({ session_id: id });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setBusy(ensure, false);
-    }
-  });
 
   getSettings.addEventListener('click', async () => {
     try {
