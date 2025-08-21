@@ -8,13 +8,6 @@ export const templatesWindow = {
       tag: 'div',
       class: 'row',
       children: [
-        { tag: 'input', id: 'base', attrs: { size: '42' } }
-      ]
-    },
-    {
-      tag: 'div',
-      class: 'row',
-      children: [
         { tag: 'button', id: 'loadTemplates', text: 'Load Templates' },
         { tag: 'select', id: 'tplSel' }
       ]

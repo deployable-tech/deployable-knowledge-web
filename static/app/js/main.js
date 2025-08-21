@@ -57,8 +57,8 @@ if (svcAdminWin) svcAdminWin.style.display = 'none';
 let sdk = null;
 let sessionId = null;
 
-// default base -> same host, port 8000
-elements.templates.base.value = `${location.protocol}//${location.hostname}:8000`;
+// default API base -> same host, port 8000
+const API_BASE = `${location.protocol}//${location.hostname}:8000`;
 
 function setBusy(el, busy) {
   el.disabled = !!busy;
@@ -188,7 +188,7 @@ setupLLMServiceAdminUI({
 // Optional boot
 (async function boot() {
   try {
-    sdk = new DKClient({ baseUrl: elements.templates.base.value });
+    sdk = new DKClient({ baseUrl: API_BASE });
     window.sdk = sdk;
     await sdk.auth.beginUser();
     const res = await sdk.sessions.ensure();
