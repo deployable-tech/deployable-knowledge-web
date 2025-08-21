@@ -4,10 +4,10 @@ import { setupChatUI, chatWindow } from './chat.js';
 import { setupDocumentsUI, documentsWindow } from './documents.js';
 import { setupPromptTemplatesUI, templatesWindow } from './prompt_templates.js';
 import { setupLLMServiceAdminUI, serviceAdminWindow } from './llm_service_admin.js';
-import { renderSearchResultItem } from './search_result_item.js';
+import { renderSearchResultItem } from './items/search_result_item.js';
 import { setupChatHistoryUI, historyWindow } from './chat_history.js';
-import { initWindows } from '../../ui/js/windows.js';
-import { layoutWindows, LayoutModes } from '../../ui/js/layout-windows.js';
+import { initWindows } from '../../ui/js/windows/windows.js';
+import { layoutWindows, LayoutModes } from '../../ui/js/windows/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
 
 const j = (o) => JSON.stringify(o, null, 2);

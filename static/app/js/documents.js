@@ -1,5 +1,5 @@
-import { renderDocumentItem } from './document_item.js';
-import { renderSegmentItem } from './segment_item.js';
+import { renderDocumentItem } from './items/document_item.js';
+import { renderSegmentItem } from './items/segment_item.js';
 
 export const documentsWindow = {
   id: 'documents',
