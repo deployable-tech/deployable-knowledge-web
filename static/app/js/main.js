@@ -82,7 +82,10 @@ function applyLayout(mode) {
   });
   let layoutMode = LayoutModes.TILE;
   if (mode === 'cascade') layoutMode = LayoutModes.CASCADE;
+  if (mode === 'smarter') layoutMode = LayoutModes.MIN_RESIZE;
   else if (mode === 'smart') layoutMode = LayoutModes.SMART;
+  
+
   const layout = layoutWindows(ws, winData, layoutMode);
   layout.forEach(pos => {
     const w = windowRegistry.get(String(pos.id));
@@ -105,6 +108,7 @@ createMenu({
     { label: 'Cascade', action: 'cascade' },
     { label: 'Tile', action: 'tile' },
     { label: 'Smart Layout', action: 'smart' },
+    { label: 'Smarter Layout', action: 'smarter'}
   ],
   onSelect: applyLayout,
 });
