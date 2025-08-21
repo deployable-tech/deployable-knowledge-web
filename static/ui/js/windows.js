@@ -1,3 +1,5 @@
+import { layoutWindows, LayoutOptions } from './layout-windows.js';
+
 export function initWindows({ config = [], containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
   const container = document.getElementById(containerId) || document.body;
   const menu = document.getElementById(menuId);
@@ -25,7 +27,59 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     { left: 680, top: 300 },
   ];
 
+  function clamp(wrap) {
+    const cW = container.clientWidth;
+    const cH = container.clientHeight;
+    if (!cW || !cH || !wrap) return;
+    const maxX = cW - wrap.offsetWidth;
+    const maxY = cH - wrap.offsetHeight;
+
+    if (wrap.offsetLeft < 0) {
+      wrap.style.left = '0px';
+    } else if (wrap.offsetLeft > maxX) {
+      wrap.style.left = `${Math.max(maxX, 0)}px`;
+    }
+
+    if (wrap.offsetTop < 0) {
+      wrap.style.top = '0px';
+    } else if (wrap.offsetTop > maxY) {
+      wrap.style.top = `${Math.max(maxY, 0)}px`;
+    }
+
+    if (wrap.offsetWidth > container.clientWidth) {
+      wrap.style.width = `${container.clientWidth}px`;
+    }
+    if (wrap.offsetHeight > container.clientHeight) {
+      wrap.style.height = `${container.clientHeight}px`;
+    }
+  }
+
   function createElement(desc) {
+    if (desc.collapsible) {
+      const det = document.createElement('details');
+      det.className = `collapsible${desc.class ? ' ' + desc.class : ''}`;
+      if (desc.id) { det.id = desc.id; elements[desc.id] = det; }
+      if (desc.attrs) {
+        for (const [k, v] of Object.entries(desc.attrs)) {
+          if (v === true) det.setAttribute(k, '');
+          else if (v !== false && v != null) det.setAttribute(k, v);
+        }
+      }
+      if (desc.open !== false) det.open = true;
+      const summary = document.createElement('summary');
+      summary.textContent = typeof desc.collapsible === 'string' ? desc.collapsible : (desc.title || '');
+      det.appendChild(summary);
+      const body = document.createElement('div');
+      body.className = 'row';
+      if (desc.children) {
+        for (const c of desc.children) {
+          body.appendChild(createElement(c));
+        }
+      }
+      det.appendChild(body);
+      return det;
+    }
+
     const el = document.createElement(desc.tag || 'div');
     if (desc.id) { el.id = desc.id; elements[desc.id] = el; }
     if (desc.class) el.className = desc.class;
@@ -74,10 +128,10 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         if (st.top) w.style.top = st.top;
         if (st.width) w.style.width = st.width;
         if (st.height) w.style.height = st.height;
-        clamp();
+        clamp(w);
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch (e) {clamp();}
+      } catch (e) {clamp(w);}
     }
   }
 
@@ -124,34 +178,6 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     wrap.appendChild(bar);
     wrap.appendChild(body);
 
-    // bounds helper
-    const clamp = () => {
-      const cW = container.clientWidth;
-      const cH = container.clientHeight;
-      if (!cW || !cH) return;
-      const maxX = cW - wrap.offsetWidth;
-      const maxY = cH - wrap.offsetHeight;
-
-      if (wrap.offsetLeft < 0) {
-        wrap.style.left = '0px';
-      } else if (wrap.offsetLeft > maxX) {
-        wrap.style.left = `${Math.max(maxX, 0)}px`;
-      }
-
-      if (wrap.offsetTop < 0) {
-        wrap.style.top = '0px';
-      } else if (wrap.offsetTop > maxY) {
-        wrap.style.top = `${Math.max(maxY, 0)}px`;
-      }
-
-      if (wrap.offsetWidth > container.clientWidth) {
-        wrap.style.width = `${container.clientWidth}px`;
-      }
-      if (wrap.offsetHeight > container.clientHeight) {
-        wrap.style.height = `${container.clientHeight}px`;
-      }
-    };
-
     // drag
     bar.addEventListener('mousedown', (e) => {
       bringToFront(wrap);
@@ -160,12 +186,12 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       function onMove(ev) {
         wrap.style.left = `${ev.clientX - startX}px`;
         wrap.style.top = `${ev.clientY - startY}px`;
-        clamp();
+        clamp(wrap);
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', () => {
         document.removeEventListener('mousemove', onMove);
-        clamp();
+        clamp(wrap);
         saveState();
       }, { once: true });
     });
@@ -184,7 +210,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     body.style.overflow = 'auto';
 
     // keep within bounds on resize
-    new ResizeObserver(() => { clamp(); saveState(); }).observe(wrap);
+    new ResizeObserver(() => { clamp(wrap); saveState(); }).observe(wrap);
 
     function saveState() {
       const st = {
@@ -204,7 +230,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     registry.set(id, wrap);
     container.appendChild(wrap);
 
-    requestAnimationFrame(clamp);
+    requestAnimationFrame(() => clamp(wrap));
  if (menu) {
    const li = document.createElement('li');
    li.textContent = title;
@@ -241,8 +267,38 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
      if (id) showWindow(id);
      menu.classList.remove('visible');
    });
-   document.addEventListener('click', () => menu.classList.remove('visible'));
+  document.addEventListener('click', () => menu.classList.remove('visible'));
  }
 
-  return { windows: registry, elements, showWindow };
+  function applyLayout(modeId) {
+    const opt = LayoutOptions[modeId];
+    if (!opt) return;
+    const ws = { width: container.clientWidth, height: container.clientHeight };
+    const openWins = Array.from(registry.values()).filter(w => w.style.display !== 'none');
+    const winData = openWins.map(w => {
+      const cs = getComputedStyle(w);
+      return {
+        id: w.dataset.id,
+        width: w.offsetWidth,
+        height: w.offsetHeight,
+        minWidth: parseInt(cs.minWidth) || 100,
+        minHeight: parseInt(cs.minHeight) || 100,
+      };
+    });
+    const layout = layoutWindows(ws, winData, opt.mode);
+    layout.forEach(pos => {
+      const w = registry.get(String(pos.id));
+      if (!w) return;
+      w.style.left = pos.x + 'px';
+      w.style.top = pos.y + 'px';
+      w.style.width = pos.width + 'px';
+      w.style.height = pos.height + 'px';
+      try {
+        const st = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height, hidden: false };
+        localStorage.setItem(`win:${pos.id}`, JSON.stringify(st));
+      } catch (e) {}
+    });
+  }
+
+  return { windows: registry, elements, showWindow, applyLayout };
 }

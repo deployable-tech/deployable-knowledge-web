@@ -271,7 +271,12 @@ pre, code {
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
 .spacer { height: var(--space-2); }
-.list { max-height: 220px; overflow: auto; border: var(--border-w) solid var(--border); border-radius: var(--radius-2); }
+.list { flex: 1; overflow: auto; border: var(--border-w) solid var(--border); border-radius: var(--radius-2); min-height: 0; }
+.collapsible summary { cursor: pointer; list-style: none; }
+.collapsible summary::-webkit-details-marker { display: none; }
+.collapsible summary::before { content: '▾'; display: inline-block; margin-right: var(--space-1); }
+.collapsible[open] summary::before { content: '▴'; }
+.collapsible .row { margin-top: var(--space-2); }
 .item {
   padding: var(--space-2) var(--space-3);
   border-bottom: var(--border-w) solid var(--border);
@@ -338,18 +343,18 @@ pre, code {
   flex-direction: column;
   gap: var(--space-2);
 }
-.obj-card__row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: var(--space-2);
-  align-items: start;
-}
-.obj-card__label { color: var(--text-subtle); font-size: 12px; }
+.obj-card__row { display: flex; gap: var(--space-2); align-items: flex-start; }
+.obj-card__row--above { flex-direction: column; }
+.obj-card__row--below { flex-direction: column-reverse; }
+.obj-card__row--left { flex-direction: row; }
+.obj-card__row--right { flex-direction: row-reverse; }
+.obj-card__label { color: var(--text-subtle); font-size: 12px; min-width: 180px; }
 .obj-card__value {
   color: var(--fg);
   font-size: 14px;
   white-space: pre-wrap;
   word-break: break-word;
+  flex: 1;
 }
 .obj-card__error { color: var(--err); font-size: 12px; margin-top: 4px; }
 .obj-card__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
@@ -442,6 +447,7 @@ pre, code {
 .chat-ctrls { margin-bottom: var(--space-2); }
 
 [data-id="chat"] .window__body { overflow: hidden; }
+[data-id="history"] .window__body { overflow: hidden; }
 
 /* =========================================================
    SEARCH / PERSONA AREAS
@@ -465,6 +471,31 @@ pre, code {
 [data-id="search"] .obj-card__title {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+
+/* Support both BEM spellings */
+.obj-card__row--above,
+.obj-card_row--above {
+  align-items: stretch; /* children fill width in column layout */
+}
+
+/* Make value cell flex wide regardless of spelling */
+.obj-card__value,
+.obj-card_value { flex: 1 1 auto; width: 100%; }
+
+/* Make textareas fill their container (cover both class spellings) */
+.obj-card__value textarea,
+.obj-card_value textarea,
+.in-textarea,
+.in_textarea,
+textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  resize: vertical;
 }
 
 /* =========================================================

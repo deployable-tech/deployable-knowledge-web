@@ -1,13 +1,12 @@
-import { renderDocumentItem } from './document_item.js';
-import { renderSegmentItem } from './segment_item.js';
+import { renderDocumentItem } from '../items/document_item.js';
+import { renderSegmentItem } from '../items/segment_item.js';
 
 export const documentsWindow = {
   id: 'documents',
   title: 'Documents',
   layout: [
     {
-      tag: 'div',
-      class: 'row',
+      collapsible: 'Upload',
       children: [
         { tag: 'input', id: 'files', attrs: { type: 'file', multiple: true } },
         { tag: 'button', id: 'upload', text: 'Upload' },
