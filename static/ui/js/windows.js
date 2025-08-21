@@ -64,6 +64,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
   function showWindow(id) {
     const w = registry.get(id);
+    console.log(id);
     if (w) {
       w.style.display = '';
       bringToFront(w);
@@ -73,9 +74,10 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         if (st.top) w.style.top = st.top;
         if (st.width) w.style.width = st.width;
         if (st.height) w.style.height = st.height;
+        clamp();
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch (e) {}
+      } catch (e) {clamp();}
     }
   }
 
@@ -203,27 +205,44 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     container.appendChild(wrap);
 
     requestAnimationFrame(clamp);
-
-    if (menu) {
-      const li = document.createElement('li');
-      li.textContent = title;
-      li.addEventListener('click', () => {
-        showWindow(id);
-        menu.classList.remove('visible');
-      });
-      menu.appendChild(li);
-    }
+ if (menu) {
+   const li = document.createElement('li');
+   li.textContent = title;
+   li.dataset.id  = id;
+   li.dataset.win = id;        // <-- store id on the element
+   menu.appendChild(li);
+ }
+    // if (menu) {
+    //   const li = document.createElement('li');
+    //   li.textContent = title;
+    //   li.addEventListener('click', () => {
+    //     showWindow(id);
+    //     menu.classList.remove('visible');
+    //   });
+    //   menu.appendChild(li);
+    // }
   }
+
+
 
   config.forEach((def, idx) => buildWindow(def, idx));
 
-  if (menu && menuBtn) {
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.toggle('visible');
-    });
-    document.addEventListener('click', () => menu.classList.remove('visible'));
-  }
+ if (menu && menuBtn) {
+   menuBtn.addEventListener('click', (e) => {
+     e.stopPropagation();
+     menu.classList.toggle('visible');
+   });
+   // Delegate clicks to whichever <li> was hit
+   menu.addEventListener('click', (e) => {
+     const li = e.target.closest('li');
+     if (!li) return;
+     const id = li.dataset.win || li.dataset.id || li.getAttribute('data-id');
+     console.log(id);
+     if (id) showWindow(id);
+     menu.classList.remove('visible');
+   });
+   document.addEventListener('click', () => menu.classList.remove('visible'));
+ }
 
   return { windows: registry, elements, showWindow };
 }

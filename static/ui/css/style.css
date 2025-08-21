@@ -157,6 +157,20 @@ a { color: inherit; text-decoration: none; }
 /* =========================================================
    LAYOUT
    ========================================================= */
+
+   /* Keep header/menu above the desktop window stack */
+header { position: relative; z-index: 1000; }
+main#desktop { position: relative; z-index: 0; }
+
+header .menu { position: relative; }
+header .menu-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1001;
+  display: none;
+}
+header .menu-list.visible { display: block; }
 header {
   padding: calc(var(--space-3) + 2px) var(--space-4);
   border-bottom: var(--border-w) solid var(--border);
