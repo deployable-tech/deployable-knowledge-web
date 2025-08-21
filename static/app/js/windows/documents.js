@@ -6,8 +6,7 @@ export const documentsWindow = {
   title: 'Documents',
   layout: [
     {
-      tag: 'div',
-      class: 'row',
+      collapsible: 'Upload',
       children: [
         { tag: 'input', id: 'files', attrs: { type: 'file', multiple: true } },
         { tag: 'button', id: 'upload', text: 'Upload' },

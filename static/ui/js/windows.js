@@ -28,6 +28,31 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
   ];
 
   function createElement(desc) {
+    if (desc.collapsible) {
+      const det = document.createElement('details');
+      det.className = `collapsible${desc.class ? ' ' + desc.class : ''}`;
+      if (desc.id) { det.id = desc.id; elements[desc.id] = det; }
+      if (desc.attrs) {
+        for (const [k, v] of Object.entries(desc.attrs)) {
+          if (v === true) det.setAttribute(k, '');
+          else if (v !== false && v != null) det.setAttribute(k, v);
+        }
+      }
+      if (desc.open !== false) det.open = true;
+      const summary = document.createElement('summary');
+      summary.textContent = typeof desc.collapsible === 'string' ? desc.collapsible : (desc.title || '');
+      det.appendChild(summary);
+      const body = document.createElement('div');
+      body.className = 'row';
+      if (desc.children) {
+        for (const c of desc.children) {
+          body.appendChild(createElement(c));
+        }
+      }
+      det.appendChild(body);
+      return det;
+    }
+
     const el = document.createElement(desc.tag || 'div');
     if (desc.id) { el.id = desc.id; elements[desc.id] = el; }
     if (desc.class) el.className = desc.class;

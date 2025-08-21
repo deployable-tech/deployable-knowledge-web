@@ -125,7 +125,8 @@ export function renderBySchema(data, spec = {}, opts = {}) {
     if (cfg.hidden) continue;
     if (cfg?.type === 'text' && cfg?.format === 'title') continue;
 
-    const row = el('div', { class: 'obj-card__row' });
+    const labelPos = cfg.labelPosition || 'above';
+    const row = el('div', { class: `obj-card__row obj-card__row--${labelPos}` });
     row.appendChild(el('div', { class: 'obj-card__label' }, labelize(key)));
 
     let valueNode;
