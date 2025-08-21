@@ -58,7 +58,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
           hidden: true
         };
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch {}
+      } catch (e) {}
     }
   }
 
@@ -69,9 +69,13 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       bringToFront(w);
       try {
         const st = JSON.parse(localStorage.getItem(`win:${id}`) || '{}');
+        if (st.left) w.style.left = st.left;
+        if (st.top) w.style.top = st.top;
+        if (st.width) w.style.width = st.width;
+        if (st.height) w.style.height = st.height;
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
-      } catch {}
+      } catch (e) {}
     }
   }
 
@@ -120,8 +124,11 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     // bounds helper
     const clamp = () => {
-      const maxX = container.clientWidth - wrap.offsetWidth;
-      const maxY = container.clientHeight - wrap.offsetHeight;
+      const cW = container.clientWidth;
+      const cH = container.clientHeight;
+      if (!cW || !cH) return;
+      const maxX = cW - wrap.offsetWidth;
+      const maxY = cH - wrap.offsetHeight;
 
       if (wrap.offsetLeft < 0) {
         wrap.style.left = '0px';
@@ -185,7 +192,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         height: wrap.style.height,
         hidden: wrap.style.display === 'none'
       };
-      try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch {}
+      try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch (e) {}
     }
 
     wrap.addEventListener('keydown', (e) => {
@@ -195,7 +202,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     registry.set(id, wrap);
     container.appendChild(wrap);
 
-    clamp();
+    requestAnimationFrame(clamp);
 
     if (menu) {
       const li = document.createElement('li');
