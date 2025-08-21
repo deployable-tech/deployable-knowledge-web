@@ -1,5 +1,5 @@
-import { renderServiceCard } from './items/llm_services_item.js';
-import { renderModelCard } from './items/llm_service_model_item.js';
+import { renderServiceCard } from '../items/llm_services_item.js';
+import { renderModelCard } from '../items/llm_service_model_item.js';
 
 export const servicesWindow = {
   id: 'services',

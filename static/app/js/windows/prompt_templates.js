@@ -1,4 +1,4 @@
-import { renderTemplateCard } from './items/prompt_template_item.js';
+import { renderTemplateCard } from '../items/prompt_template_item.js';
 
 export const templatesWindow = {
   id: 'templates',

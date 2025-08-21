@@ -1,13 +1,13 @@
 import { DKClient } from './sdk.js';
-import { setupLLMServiceUI, servicesWindow } from './llm_service.js';
-import { setupChatUI, chatWindow } from './chat.js';
-import { setupDocumentsUI, documentsWindow } from './documents.js';
-import { setupPromptTemplatesUI, templatesWindow } from './prompt_templates.js';
-import { setupLLMServiceAdminUI, serviceAdminWindow } from './llm_service_admin.js';
+import { setupLLMServiceUI, servicesWindow } from './windows/llm_service.js';
+import { setupChatUI, chatWindow } from './windows/chat.js';
+import { setupDocumentsUI, documentsWindow } from './windows/documents.js';
+import { setupPromptTemplatesUI, templatesWindow } from './windows/prompt_templates.js';
+import { setupLLMServiceAdminUI, serviceAdminWindow } from './windows/llm_service_admin.js';
 import { renderSearchResultItem } from './items/search_result_item.js';
-import { setupChatHistoryUI, historyWindow } from './chat_history.js';
-import { initWindows } from '../../ui/js/windows/windows.js';
-import { layoutWindows, LayoutModes } from '../../ui/js/windows/layout-windows.js';
+import { setupChatHistoryUI, historyWindow } from './windows/chat_history.js';
+import { initWindows } from '../../ui/js/windows.js';
+import { layoutWindows, LayoutModes } from '../../ui/js/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
