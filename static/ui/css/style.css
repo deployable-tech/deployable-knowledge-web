@@ -473,6 +473,31 @@ pre, code {
   word-break: break-word;
 }
 
+
+/* Support both BEM spellings */
+.obj-card__row--above,
+.obj-card_row--above {
+  align-items: stretch; /* children fill width in column layout */
+}
+
+/* Make value cell flex wide regardless of spelling */
+.obj-card__value,
+.obj-card_value { flex: 1 1 auto; width: 100%; }
+
+/* Make textareas fill their container (cover both class spellings) */
+.obj-card__value textarea,
+.obj-card_value textarea,
+.in-textarea,
+.in_textarea,
+textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 /* =========================================================
    FOOTER
    ========================================================= */
