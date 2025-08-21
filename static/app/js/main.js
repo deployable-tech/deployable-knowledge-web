@@ -7,7 +7,7 @@ import { setupLLMServiceAdminUI, serviceAdminWindow } from './windows/llm_servic
 import { renderSearchResultItem } from './items/search_result_item.js';
 import { setupChatHistoryUI, historyWindow } from './windows/chat_history.js';
 import { initWindows } from '../../ui/js/windows.js';
-import { layoutWindows, LayoutModes } from '../../ui/js/layout-windows.js';
+import { LayoutOptions } from '../../ui/js/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
@@ -58,60 +58,24 @@ const windows = [
 ];
 
 // ---- build windows ----
-const { windows: windowRegistry, showWindow, elements } = initWindows({
+const { showWindow, elements, applyLayout } = initWindows({
   config: windows,
   menuId: 'windowMenu',
   menuBtnId: 'windowMenuBtn',
   containerId: 'desktop'
 });
 
-function applyLayout(mode) {
-  const container = document.getElementById('desktop');
-  if (!container) return;
-  const ws = { width: container.clientWidth, height: container.clientHeight };
-  const openWins = Array.from(windowRegistry.values()).filter(w => w.style.display !== 'none');
-  const winData = openWins.map(w => {
-    const cs = getComputedStyle(w);
-    return {
-      id: w.dataset.id,
-      width: w.offsetWidth,
-      height: w.offsetHeight,
-      minWidth: parseInt(cs.minWidth) || 100,
-      minHeight: parseInt(cs.minHeight) || 100,
-    };
-  });
-  let layoutMode = LayoutModes.TILE;
-  if (mode === 'cascade') layoutMode = LayoutModes.CASCADE;
-  if (mode === 'smarter') layoutMode = LayoutModes.MIN_RESIZE;
-  else if (mode === 'smart') layoutMode = LayoutModes.SMART;
-  
+const layoutMenu = {
+  id: 'layoutMenu',
+  title: 'Layout',
+  options: Object.values(LayoutOptions).map(opt => ({
+    id: opt.id,
+    title: opt.title,
+    action: applyLayout,
+  })),
+};
 
-  const layout = layoutWindows(ws, winData, layoutMode);
-  layout.forEach(pos => {
-    const w = windowRegistry.get(String(pos.id));
-    if (!w) return;
-    w.style.left = pos.x + 'px';
-    w.style.top = pos.y + 'px';
-    w.style.width = pos.width + 'px';
-    w.style.height = pos.height + 'px';
-    try {
-      const st = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height, hidden: false };
-      localStorage.setItem(`win:${pos.id}`, JSON.stringify(st));
-    } catch (e) {}
-  });
-}
-
-createMenu({
-  containerId: 'layoutMenu',
-  buttonText: 'Layout',
-  items: [
-    { label: 'Cascade', action: 'cascade' },
-    { label: 'Tile', action: 'tile' },
-    { label: 'Smart Layout', action: 'smart' },
-    { label: 'Smarter Layout', action: 'smarter'}
-  ],
-  onSelect: applyLayout,
-});
+createMenu(layoutMenu);
 
 function openChat() {
   showWindow('chat');

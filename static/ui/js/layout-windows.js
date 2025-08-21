@@ -36,6 +36,14 @@ export const LayoutModes = Object.freeze({
   MIN_RESIZE: "min_resize", // NEW
 });
 
+// Lookup table for available layout modes
+export const LayoutOptions = {
+  tile: { id: 'tile', title: 'Tile', mode: LayoutModes.TILE },
+  cascade: { id: 'cascade', title: 'Cascade', mode: LayoutModes.CASCADE },
+  smart: { id: 'smart', title: 'Smart Layout', mode: LayoutModes.SMART },
+  smarter: { id: 'smarter', title: 'Smarter Layout', mode: LayoutModes.MIN_RESIZE },
+};
+
 
 /**
  * Main entry

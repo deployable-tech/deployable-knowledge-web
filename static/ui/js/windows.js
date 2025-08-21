@@ -1,3 +1,5 @@
+import { layoutWindows, LayoutOptions } from './layout-windows.js';
+
 export function initWindows({ config = [], containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
   const container = document.getElementById(containerId) || document.body;
   const menu = document.getElementById(menuId);
@@ -241,8 +243,38 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
      if (id) showWindow(id);
      menu.classList.remove('visible');
    });
-   document.addEventListener('click', () => menu.classList.remove('visible'));
+  document.addEventListener('click', () => menu.classList.remove('visible'));
  }
 
-  return { windows: registry, elements, showWindow };
+  function applyLayout(modeId) {
+    const opt = LayoutOptions[modeId];
+    if (!opt) return;
+    const ws = { width: container.clientWidth, height: container.clientHeight };
+    const openWins = Array.from(registry.values()).filter(w => w.style.display !== 'none');
+    const winData = openWins.map(w => {
+      const cs = getComputedStyle(w);
+      return {
+        id: w.dataset.id,
+        width: w.offsetWidth,
+        height: w.offsetHeight,
+        minWidth: parseInt(cs.minWidth) || 100,
+        minHeight: parseInt(cs.minHeight) || 100,
+      };
+    });
+    const layout = layoutWindows(ws, winData, opt.mode);
+    layout.forEach(pos => {
+      const w = registry.get(String(pos.id));
+      if (!w) return;
+      w.style.left = pos.x + 'px';
+      w.style.top = pos.y + 'px';
+      w.style.width = pos.width + 'px';
+      w.style.height = pos.height + 'px';
+      try {
+        const st = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height, hidden: false };
+        localStorage.setItem(`win:${pos.id}`, JSON.stringify(st));
+      } catch (e) {}
+    });
+  }
+
+  return { windows: registry, elements, showWindow, applyLayout };
 }
