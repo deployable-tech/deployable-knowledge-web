@@ -119,7 +119,15 @@ export function setupLLMModelsUI({ getSDK, elements, helpers = {}, deps = {} }) 
 
   addModel.addEventListener('click', () => {
     if (!svc.value) return;
-    const blank = { service_id: svc.value, model_name: '', modality: 'text', context_window: 0, supports_tools: false, extra: {} };
+    const blank = {
+      service_id: svc.value,
+      name: '',
+      model_name: '',
+      modality: null,
+      context_window: null,
+      supports_tools: false,
+      extra: {}
+    };
     renderModel(blank, { mode: 'edit' });
   });
 

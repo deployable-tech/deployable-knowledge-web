@@ -31,7 +31,7 @@ export function createLLMServiceModelSchema({
           created_at:    { type: "date",  format: "MM/DD/YYYY HH:mm:SS" },
           extra:         { type: "json",  format: "json_as_text", input: { type: "textarea", rows: 6 } }
         },
-        order: ["service_id","modality","context_window","supports_tools","extra","created_at"],
+        order: ["name","model_name","service_id","modality","context_window","supports_tools","extra","created_at"],
         actions: [
           {
             id: "select", label: "Select", variant: "primary", where: "footer",
