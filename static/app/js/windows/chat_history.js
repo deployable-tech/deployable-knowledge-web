@@ -1,4 +1,4 @@
-import * as sessionStore from '../state/session_store.js';
+import store from '../state/store.js';
 
 export const historyWindow = {
   id: 'history',
@@ -26,16 +26,16 @@ export function setupChatHistoryUI({ renderHistory, elements, helpers }) {
       const item = document.createElement('div');
       item.className = 'item';
       item.textContent = sess.title || sess.session_id;
-      item.addEventListener('click', () => sessionStore.setCurrent(sess.session_id));
+      item.addEventListener('click', () => store.session.setCurrent(sess.session_id));
       sessionList.appendChild(item);
     });
   }
 
-  sessionStore.onSessionsLoaded(renderList);
+  store.session.onLoaded(renderList);
 
-  sessionStore.onSessionChange(async (id) => {
+  store.session.onChange(async (id) => {
     try {
-      const s = await sessionStore.get(id);
+      const s = await store.session.get(id);
       renderHistory(s);
     } catch (e) {
       toastERR(sessionList, e);
@@ -45,7 +45,7 @@ export function setupChatHistoryUI({ renderHistory, elements, helpers }) {
   listSessions.addEventListener('click', async () => {
     try {
       setBusy(listSessions, true);
-      await sessionStore.list();
+      await store.session.list();
     } catch (e) {
       toastERR(sessionList, e);
     } finally {
@@ -56,8 +56,8 @@ export function setupChatHistoryUI({ renderHistory, elements, helpers }) {
   newChat.addEventListener('click', async () => {
     try {
       setBusy(newChat, true);
-      await sessionStore.create();
-      await sessionStore.list();
+      await store.session.create();
+      await store.session.list();
       renderHistory({ history: [] });
     } catch (e) {
       toastERR(sessionList, e);
@@ -66,5 +66,5 @@ export function setupChatHistoryUI({ renderHistory, elements, helpers }) {
     }
   });
 
-  sessionStore.list();
+  store.session.list();
 }

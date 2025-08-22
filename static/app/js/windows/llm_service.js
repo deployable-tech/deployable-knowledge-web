@@ -1,5 +1,6 @@
 import { renderServiceCard } from '../items/llm_services_item.js';
 import { renderModelCard } from '../items/llm_service_model_item.js';
+import store from '../state/store.js';
 
 export const servicesWindow = {
   id: 'services',
@@ -115,9 +116,14 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl, deps = 
         svcSel.appendChild(opt);
       }
       if (list.length) {
-        svcSel.value = list[0].id;
-        renderService(list[0]);
+        const sel = store.llm.getSelection();
+        svcSel.value = sel.serviceId && services.has(sel.serviceId) ? sel.serviceId : list[0].id;
+        renderService(services.get(svcSel.value));
         await populateModels();
+        if (sel.modelId) {
+          modelSel.value = sel.modelId;
+          renderModel(models.get(sel.modelId));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -138,14 +144,10 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl, deps = 
   setSelection.addEventListener('click', async () => {
     try {
       ensureSDK();
-      const sdk = getSDK();
-      const payload = {
-        user_id: userIdEl.value || 'local-user',
-        service_id: svcSel.value || undefined,
-        model_id: modelSel.value || undefined
-      };
-      const res = await sdk.llm.updateSelection(payload);
-      console.log(res);
+      await store.llm.setSelection({
+        serviceId: svcSel.value || undefined,
+        modelId: modelSel.value || undefined
+      }, userIdEl.value || 'local-user');
     } catch (e) {
       console.error(e);
     }
@@ -154,12 +156,20 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl, deps = 
   refreshSel.addEventListener('click', async () => {
     try {
       ensureSDK();
-      const sdk = getSDK();
-      const sel = await sdk.llm.getSelection();
-      console.log(sel);
+      await store.llm.loadSelection();
     } catch (e) {
       console.error(e);
     }
+  });
+
+  store.llm.onChange(async (sel) => {
+    if (svcSel.value !== (sel.serviceId || '')) {
+      svcSel.value = sel.serviceId || '';
+      await populateModels();
+    }
+    modelSel.value = sel.modelId || '';
+    renderService(services.get(sel.serviceId));
+    renderModel(models.get(sel.modelId));
   });
 
   if (manageServices && typeof showWindow === 'function') {

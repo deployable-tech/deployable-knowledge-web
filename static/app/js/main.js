@@ -10,7 +10,7 @@ import { setupPersonaUI, personaWindow } from './windows/persona.js';
 import { initWindows } from '../../ui/js/windows.js';
 import { LayoutOptions } from '../../ui/js/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
-import * as sessionStore from './state/session_store.js';
+import store from './state/store.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
@@ -132,9 +132,7 @@ setupChatUI({
   deps: {
     templateId: elements.templates.templateId,
     topK: elements.search.topK,
-    userId: elements.templates.userId,
-    svcSel: elements.services.svc,
-    modelSel: elements.services.model
+    userId: elements.templates.userId
   }
 });
 
@@ -188,11 +186,12 @@ setupLLMServiceAdminUI({
 (async function boot() {
   try {
     sdk = new DKClient({ baseUrl: API_BASE });
-    sessionStore.init(() => sdk);
+    store.init(() => sdk);
     window.sdk = sdk;
     await sdk.auth.beginUser();
-    await sessionStore.ensure();
-    await sessionStore.list();
+    await store.session.ensure();
+    await store.session.list();
+    await store.llm.loadSelection();
 
     // auto-update windows on boot
     try { elements.services.loadServices.click(); } catch {}
