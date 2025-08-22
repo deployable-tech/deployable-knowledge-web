@@ -8,17 +8,6 @@ export const templatesWindow = {
       tag: 'div',
       class: 'row',
       children: [
-        { tag: 'input', id: 'base', attrs: { size: '42' } },
-        { tag: 'button', id: 'init', text: 'Init SDK' },
-        { tag: 'button', id: 'prime', text: 'Prime User Session' },
-        { tag: 'button', id: 'ensure', text: 'Ensure Session' },
-        { tag: 'span', id: 'sid', class: 'mono subtle' }
-      ]
-    },
-    {
-      tag: 'div',
-      class: 'row',
-      children: [
         { tag: 'button', id: 'loadTemplates', text: 'Load Templates' },
         { tag: 'select', id: 'tplSel' }
       ]
@@ -44,7 +33,7 @@ export const templatesWindow = {
 };
 
 export function setupPromptTemplatesUI({ getSDK, elements, helpers }) {
-  const { loadTemplates, tplSel, tplCard, templateId } = elements;
+  const { loadTemplates, tplSel, tplCard, templateId, userId, getSettings } = elements;
   const { ensureSDK } = helpers;
 
   const templates = new Map();
@@ -93,4 +82,15 @@ export function setupPromptTemplatesUI({ getSDK, elements, helpers }) {
 
   loadTemplates.addEventListener('click', fetchTemplates);
   tplSel.addEventListener('change', () => renderTemplate(tplSel.value));
+
+  getSettings.addEventListener('click', async () => {
+    try {
+      ensureSDK();
+      const sdk = getSDK();
+      const res = await sdk.settings.get(userId.value || 'local-user');
+      console.log(res);
+    } catch (e) {
+      console.error(e);
+    }
+  });
 }

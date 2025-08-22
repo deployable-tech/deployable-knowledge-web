@@ -1,16 +1,10 @@
 import { layoutWindows, LayoutOptions } from './layout-windows.js';
 
-export function initWindows({ config = [], containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
+export function initWindows({ config = [], containerId = 'desktop' } = {}) {
   const container = document.getElementById(containerId) || document.body;
-  const menu = document.getElementById(menuId);
-  const menuBtn = document.getElementById(menuBtnId);
   const registry = new Map();
   const elements = {};
   let zTop = 1;
-
-  if (menu) {
-    menu.innerHTML = '';
-  }
 
   const bringToFront = (w) => {
     zTop += 1;
@@ -54,11 +48,11 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
   }
 
-  function createElement(desc) {
+  function createElement(desc, winId) {
     if (desc.collapsible) {
       const det = document.createElement('details');
       det.className = `collapsible${desc.class ? ' ' + desc.class : ''}`;
-      if (desc.id) { det.id = desc.id; elements[desc.id] = det; }
+      if (desc.id) { det.id = desc.id; if (winId) elements[winId][desc.id] = det; }
       if (desc.attrs) {
         for (const [k, v] of Object.entries(desc.attrs)) {
           if (v === true) det.setAttribute(k, '');
@@ -73,7 +67,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
       body.className = 'row';
       if (desc.children) {
         for (const c of desc.children) {
-          body.appendChild(createElement(c));
+          body.appendChild(createElement(c, winId));
         }
       }
       det.appendChild(body);
@@ -81,7 +75,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
 
     const el = document.createElement(desc.tag || 'div');
-    if (desc.id) { el.id = desc.id; elements[desc.id] = el; }
+    if (desc.id) { el.id = desc.id; if (winId) elements[winId][desc.id] = el; }
     if (desc.class) el.className = desc.class;
     if (desc.text) el.textContent = desc.text;
     if (desc.html) el.innerHTML = desc.html;
@@ -93,7 +87,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     }
     if (desc.children) {
       for (const c of desc.children) {
-        el.appendChild(createElement(c));
+        el.appendChild(createElement(c, winId));
       }
     }
     return el;
@@ -109,7 +103,9 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
           top: w.style.top,
           width: w.style.width,
           height: w.style.height,
-          hidden: true
+          hidden: true,
+          minimized: w.classList.contains('window--minimized'),
+          prevHeight: w.dataset.prevHeight
         };
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
       } catch (e) {}
@@ -118,7 +114,6 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
   function showWindow(id) {
     const w = registry.get(id);
-    console.log(id);
     if (w) {
       w.style.display = '';
       bringToFront(w);
@@ -128,6 +123,14 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         if (st.top) w.style.top = st.top;
         if (st.width) w.style.width = st.width;
         if (st.height) w.style.height = st.height;
+        if (st.minimized) {
+          w.classList.add('window--minimized');
+          w.style.resize = 'none';
+          if (st.prevHeight) w.dataset.prevHeight = st.prevHeight;
+        } else {
+          w.classList.remove('window--minimized');
+          w.style.resize = 'both';
+        }
         clamp(w);
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
@@ -138,6 +141,8 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
   function buildWindow(def, idx) {
     const id = def.id || `win-${idx}`;
     const title = def.title || id;
+
+    elements[id] = {};
 
     const wrap = document.createElement('div');
     wrap.className = 'window';
@@ -171,12 +176,37 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     body.className = 'window__body';
     if (def.layout) {
       for (const item of def.layout) {
-        body.appendChild(createElement(item));
+        body.appendChild(createElement(item, id));
       }
     }
 
     wrap.appendChild(bar);
     wrap.appendChild(body);
+
+    function setMinimized(min) {
+      if (min) {
+        wrap.classList.add('window--minimized');
+        wrap.style.resize = 'none';
+        wrap.dataset.prevHeight = wrap.dataset.prevHeight || wrap.style.height;
+        wrap.style.height = bar.offsetHeight + 'px';
+      } else {
+        wrap.classList.remove('window--minimized');
+        wrap.style.resize = 'both';
+        wrap.style.height = wrap.dataset.prevHeight || '';
+        delete wrap.dataset.prevHeight;
+      }
+    }
+
+    function toggleMinimize() {
+      const isMin = wrap.classList.contains('window--minimized');
+      setMinimized(!isMin);
+      saveState();
+    }
+
+    if (saved.minimized) {
+      if (saved.prevHeight) wrap.dataset.prevHeight = saved.prevHeight;
+      setMinimized(true);
+    }
 
     // drag
     bar.addEventListener('mousedown', (e) => {
@@ -202,7 +232,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     wrap.addEventListener('mousedown', () => bringToFront(wrap));
 
-    minBtn.addEventListener('click', () => hideWindow(id));
+    minBtn.addEventListener('click', toggleMinimize);
     closeBtn.addEventListener('click', () => hideWindow(id));
 
     wrap.style.resize = 'both';
@@ -218,7 +248,9 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         top: wrap.style.top,
         width: wrap.style.width,
         height: wrap.style.height,
-        hidden: wrap.style.display === 'none'
+        hidden: wrap.style.display === 'none',
+        minimized: wrap.classList.contains('window--minimized'),
+        prevHeight: wrap.dataset.prevHeight
       };
       try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch (e) {}
     }
@@ -231,44 +263,14 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     container.appendChild(wrap);
 
     requestAnimationFrame(() => clamp(wrap));
- if (menu) {
-   const li = document.createElement('li');
-   li.textContent = title;
-   li.dataset.id  = id;
-   li.dataset.win = id;        // <-- store id on the element
-   menu.appendChild(li);
- }
-    // if (menu) {
-    //   const li = document.createElement('li');
-    //   li.textContent = title;
-    //   li.addEventListener('click', () => {
-    //     showWindow(id);
-    //     menu.classList.remove('visible');
-    //   });
-    //   menu.appendChild(li);
-    // }
+    // menu handling moved to main.js via createMenu
   }
 
 
 
   config.forEach((def, idx) => buildWindow(def, idx));
 
- if (menu && menuBtn) {
-   menuBtn.addEventListener('click', (e) => {
-     e.stopPropagation();
-     menu.classList.toggle('visible');
-   });
-   // Delegate clicks to whichever <li> was hit
-   menu.addEventListener('click', (e) => {
-     const li = e.target.closest('li');
-     if (!li) return;
-     const id = li.dataset.win || li.dataset.id || li.getAttribute('data-id');
-     console.log(id);
-     if (id) showWindow(id);
-     menu.classList.remove('visible');
-   });
-  document.addEventListener('click', () => menu.classList.remove('visible'));
- }
+  // window menu is built separately via createMenu
 
   function applyLayout(modeId) {
     const opt = LayoutOptions[modeId];

@@ -56,7 +56,7 @@ export function setupLLMServiceAdminUI({ getSDK, elements, helpers }) {
     modelName,
     modelModality,
     delModelId,
-    out
+    svcAdminOut: out
   } = elements;
   const { ensureSDK, setBusy, toastOK, toastERR } = helpers;
 

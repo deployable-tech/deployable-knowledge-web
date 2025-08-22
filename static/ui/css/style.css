@@ -416,6 +416,16 @@ pre, code {
 }
 .window--docked { top: 0 !important; left: 0 !important; }
 
+.window--minimized {
+  min-height: 0 !important;
+  height: auto !important;
+  resize: none;
+}
+
+.window--minimized .window__body {
+  display: none;
+}
+
 /* =========================================================
    CHAT
    ========================================================= */

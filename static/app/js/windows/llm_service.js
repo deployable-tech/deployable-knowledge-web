@@ -37,9 +37,10 @@ export const servicesWindow = {
   ]
 };
 
-export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
-  const { loadServices, refreshSel, svcSel, modelSel, setSelection, serviceCards, modelCards } = elements;
+export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl, deps = {} }) {
+  const { loadServices, refreshSelection: refreshSel, svc: svcSel, model: modelSel, setSelection, serviceCards, modelCards, manageServices } = elements;
   const { ensureSDK } = helpers;
+  const { showWindow } = deps;
 
   const services = new Map();
   const models = new Map();
@@ -160,4 +161,8 @@ export function setupLLMServiceUI({ getSDK, elements, helpers, userIdEl }) {
       console.error(e);
     }
   });
+
+  if (manageServices && typeof showWindow === 'function') {
+    manageServices.addEventListener('click', () => showWindow('service-admin'));
+  }
 }
