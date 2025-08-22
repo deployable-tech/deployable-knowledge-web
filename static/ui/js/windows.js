@@ -1,16 +1,10 @@
 import { layoutWindows, LayoutOptions } from './layout-windows.js';
 
-export function initWindows({ config = [], containerId = 'desktop', menuId = 'windowMenu', menuBtnId = 'windowMenuBtn' } = {}) {
+export function initWindows({ config = [], containerId = 'desktop' } = {}) {
   const container = document.getElementById(containerId) || document.body;
-  const menu = document.getElementById(menuId);
-  const menuBtn = document.getElementById(menuBtnId);
   const registry = new Map();
   const elements = {};
   let zTop = 1;
-
-  if (menu) {
-    menu.innerHTML = '';
-  }
 
   const bringToFront = (w) => {
     zTop += 1;
@@ -269,44 +263,14 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     container.appendChild(wrap);
 
     requestAnimationFrame(() => clamp(wrap));
- if (menu) {
-   const li = document.createElement('li');
-   li.textContent = title;
-   li.dataset.id  = id;
-   li.dataset.win = id;        // <-- store id on the element
-   menu.appendChild(li);
- }
-    // if (menu) {
-    //   const li = document.createElement('li');
-    //   li.textContent = title;
-    //   li.addEventListener('click', () => {
-    //     showWindow(id);
-    //     menu.classList.remove('visible');
-    //   });
-    //   menu.appendChild(li);
-    // }
+    // menu handling moved to main.js via createMenu
   }
 
 
 
   config.forEach((def, idx) => buildWindow(def, idx));
 
- if (menu && menuBtn) {
-   menuBtn.addEventListener('click', (e) => {
-     e.stopPropagation();
-     menu.classList.toggle('visible');
-   });
-   // Delegate clicks to whichever <li> was hit
-   menu.addEventListener('click', (e) => {
-     const li = e.target.closest('li');
-     if (!li) return;
-     const id = li.dataset.win || li.dataset.id || li.getAttribute('data-id');
-     console.log(id);
-     if (id) showWindow(id);
-     menu.classList.remove('visible');
-   });
-  document.addEventListener('click', () => menu.classList.remove('visible'));
- }
+  // window menu is built separately via createMenu
 
   function applyLayout(modeId) {
     const opt = LayoutOptions[modeId];

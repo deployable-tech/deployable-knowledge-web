@@ -27,10 +27,18 @@ const windows = [
 // ---- build windows ----
 const { showWindow, elements, applyLayout } = initWindows({
   config: windows,
-  menuId: 'windowMenu',
-  menuBtnId: 'windowMenuBtn',
   containerId: 'desktop'
 });
+
+const windowMenu = {
+  id: 'windowMenu',
+  title: 'Windows',
+  options: windows.map(w => ({
+    id: w.id,
+    title: w.title,
+    action: showWindow,
+  })),
+};
 
 const layoutMenu = {
   id: 'layoutMenu',
@@ -42,7 +50,13 @@ const layoutMenu = {
   })),
 };
 
-createMenu(layoutMenu);
+const winMenuUI = createMenu(windowMenu);
+const layoutMenuUI = createMenu(layoutMenu);
+
+if (winMenuUI && layoutMenuUI) {
+  winMenuUI.button.addEventListener('click', () => layoutMenuUI.menu.classList.remove('visible'));
+  layoutMenuUI.button.addEventListener('click', () => winMenuUI.menu.classList.remove('visible'));
+}
 
 function openChat() {
   showWindow('chat');
