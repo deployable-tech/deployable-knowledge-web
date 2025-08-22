@@ -109,7 +109,9 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
           top: w.style.top,
           width: w.style.width,
           height: w.style.height,
-          hidden: true
+          hidden: true,
+          minimized: w.classList.contains('window--minimized'),
+          prevHeight: w.dataset.prevHeight
         };
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
       } catch (e) {}
@@ -118,7 +120,6 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
   function showWindow(id) {
     const w = registry.get(id);
-    console.log(id);
     if (w) {
       w.style.display = '';
       bringToFront(w);
@@ -128,6 +129,14 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         if (st.top) w.style.top = st.top;
         if (st.width) w.style.width = st.width;
         if (st.height) w.style.height = st.height;
+        if (st.minimized) {
+          w.classList.add('window--minimized');
+          w.style.resize = 'none';
+          if (st.prevHeight) w.dataset.prevHeight = st.prevHeight;
+        } else {
+          w.classList.remove('window--minimized');
+          w.style.resize = 'both';
+        }
         clamp(w);
         st.hidden = false;
         localStorage.setItem(`win:${id}`, JSON.stringify(st));
@@ -180,6 +189,31 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
     wrap.appendChild(bar);
     wrap.appendChild(body);
 
+    function setMinimized(min) {
+      if (min) {
+        wrap.classList.add('window--minimized');
+        wrap.style.resize = 'none';
+        wrap.dataset.prevHeight = wrap.dataset.prevHeight || wrap.style.height;
+        wrap.style.height = bar.offsetHeight + 'px';
+      } else {
+        wrap.classList.remove('window--minimized');
+        wrap.style.resize = 'both';
+        wrap.style.height = wrap.dataset.prevHeight || '';
+        delete wrap.dataset.prevHeight;
+      }
+    }
+
+    function toggleMinimize() {
+      const isMin = wrap.classList.contains('window--minimized');
+      setMinimized(!isMin);
+      saveState();
+    }
+
+    if (saved.minimized) {
+      if (saved.prevHeight) wrap.dataset.prevHeight = saved.prevHeight;
+      setMinimized(true);
+    }
+
     // drag
     bar.addEventListener('mousedown', (e) => {
       bringToFront(wrap);
@@ -204,7 +238,7 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
 
     wrap.addEventListener('mousedown', () => bringToFront(wrap));
 
-    minBtn.addEventListener('click', () => hideWindow(id));
+    minBtn.addEventListener('click', toggleMinimize);
     closeBtn.addEventListener('click', () => hideWindow(id));
 
     wrap.style.resize = 'both';
@@ -220,7 +254,9 @@ export function initWindows({ config = [], containerId = 'desktop', menuId = 'wi
         top: wrap.style.top,
         width: wrap.style.width,
         height: wrap.style.height,
-        hidden: wrap.style.display === 'none'
+        hidden: wrap.style.display === 'none',
+        minimized: wrap.classList.contains('window--minimized'),
+        prevHeight: wrap.dataset.prevHeight
       };
       try { localStorage.setItem(`win:${id}`, JSON.stringify(st)); } catch (e) {}
     }
