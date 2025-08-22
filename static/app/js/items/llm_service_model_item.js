@@ -13,6 +13,7 @@ export function createLLMServiceModelSchema({
   onSave,    // hook after save
   onEdit,    // hook on entering edit
   onCancel,  // hook on cancel
+  onDelete,  // hook after delete
 } = {}) {
   return {
     object_type: "llm_model",
@@ -30,7 +31,7 @@ export function createLLMServiceModelSchema({
           created_at:    { type: "date",  format: "MM/DD/YYYY HH:mm:SS" },
           extra:         { type: "json",  format: "json_as_text", input: { type: "textarea", rows: 6 } }
         },
-        order: ["service_id","modality","context_window","supports_tools","extra","created_at"],
+        order: ["name","model_name","service_id","modality","context_window","supports_tools","extra","created_at"],
         actions: [
           {
             id: "select", label: "Select", variant: "primary", where: "footer",
@@ -47,6 +48,13 @@ export function createLLMServiceModelSchema({
           {
             id: "edit", label: "Edit", variant: "secondary", where: "footer",
             onAction: (values, ctx) => { onEdit?.(values, ctx); ctx.setMode("edit"); }
+          },
+          {
+            id: "delete", label: "Delete", variant: "danger", where: "footer",
+            onAction: async (values, ctx) => {
+              await sdk?.llm?.deleteModel(values.id);
+              await onDelete?.(values, ctx);
+            }
           }
         ]
       },
@@ -59,11 +67,13 @@ export function createLLMServiceModelSchema({
           {
             id: "save", label: "Save", variant: "primary", where: "footer",
             onAction: async (values, ctx) => {
-              const patch = { ...values };
-              // strip immutable ids; let backend own them
-              delete patch.id; delete patch.created_at;
-              await sdk?.llm?.updateModel(values.id, patch);
-              await onSave?.(patch, ctx);
+              const payload = { ...values };
+              delete payload.id; delete payload.created_at;
+              payload.service_id = values.service_id ?? getSelectedServiceId();
+              let res;
+              if (values.id) res = await sdk?.llm?.updateModel(values.id, payload);
+              else res = await sdk?.llm?.createModel(payload);
+              await onSave?.(res, ctx);
               ctx.setMode("default");
             }
           },

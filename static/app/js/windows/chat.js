@@ -1,3 +1,5 @@
+import store from '../state/store.js';
+
 export const chatWindow = {
   id: 'chat',
   title: 'Chat',
@@ -21,9 +23,9 @@ export const chatWindow = {
   ]
 };
 
-export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona, deps = {} }) {
+export function setupChatUI({ getSDK, elements, helpers, getPersona, deps = {} }) {
   const { msg, send, meta, chatOut } = elements;
-  const { templateId, topK, userId, svcSel, modelSel } = deps;
+  const { templateId, topK, userId } = deps;
   const { ensureSDK, setBusy } = helpers;
 
   function appendMessage(role, text) {
@@ -47,18 +49,19 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
       ensureSDK();
       const sdk = getSDK();
       setBusy(send, true);
-      await ensureSession();
+      await store.session.ensure();
       meta.textContent = '';
       const userText = msg.value;
       appendMessage('user', userText);
       msg.value = '';
       const botDiv = appendMessage('bot', '');
+      const sel = store.llm.getSelection();
       const p = {
         message: userText,
-        sessionId: getSessionId(),
+        sessionId: store.session.getCurrent(),
         userId: userId.value || 'local-user',
-        serviceId: svcSel.value || undefined,
-        modelId: modelSel.value || undefined,
+        serviceId: sel.serviceId || undefined,
+        modelId: sel.modelId || undefined,
         persona: (typeof getPersona === 'function' ? getPersona() : '') || '',
         templateId: templateId.value || 'rag_chat',
         topK: Number(topK.value) || 8,
