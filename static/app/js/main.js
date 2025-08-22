@@ -10,6 +10,7 @@ import { setupPersonaUI, personaWindow } from './windows/persona.js';
 import { initWindows } from '../../ui/js/windows.js';
 import { LayoutOptions } from '../../ui/js/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
+import * as sessionStore from './state/session_store.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
@@ -69,7 +70,6 @@ if (svcAdminWin) svcAdminWin.style.display = 'none';
 
 // ---- state ----
 let sdk = null;
-let sessionId = null;
 
 // default API base -> same host, port 8000
 const API_BASE = `${location.protocol}//${location.hostname}:8000`;
@@ -87,10 +87,6 @@ function toastOK(outEl, data) {
 function toastERR(outEl, err) {
   outEl.textContent = err?.message || String(err);
   outEl.classList.remove('ok'); outEl.classList.add('err');
-}
-
-function setSession(id) {
-  sessionId = id;
 }
 
 function sdkHandler(btn, outEl, fn) {
@@ -112,13 +108,6 @@ function ensureSDK() {
   if (!sdk) throw new Error('Init SDK first.');
 }
 
-async function ensureSession() {
-  ensureSDK();
-  const res = await sdk.sessions.ensure();
-  setSession(res.session_id);
-  return sessionId;
-}
-
 // ---- setup windows ----
 setupSearchUI({
   getSDK: () => sdk,
@@ -137,8 +126,6 @@ const personaAPI = setupPersonaUI({ elements: elements.persona });
 
 setupChatUI({
   getSDK: () => sdk,
-  ensureSession,
-  getSessionId: () => sessionId,
   elements: elements.chat,
   helpers: { ensureSDK, setBusy },
   getPersona: personaAPI.getPersona,
@@ -152,8 +139,6 @@ setupChatUI({
 });
 
 setupChatHistoryUI({
-  getSDK: () => sdk,
-  setSession: (id) => setSession(id),
   renderHistory: (s) => {
     showWindow('chat');
     const chatOut = elements.chat.chatOut;
@@ -176,7 +161,7 @@ setupChatHistoryUI({
     chatOut.scrollTop = chatOut.scrollHeight;
   },
   elements: elements.history,
-  helpers: { ensureSDK, setBusy, toastERR }
+  helpers: { setBusy, toastERR }
 });
 
 setupLLMServiceUI({
@@ -203,10 +188,11 @@ setupLLMServiceAdminUI({
 (async function boot() {
   try {
     sdk = new DKClient({ baseUrl: API_BASE });
+    sessionStore.init(() => sdk);
     window.sdk = sdk;
     await sdk.auth.beginUser();
-    const res = await sdk.sessions.ensure();
-    sessionId = res.session_id;
+    await sessionStore.ensure();
+    await sessionStore.list();
 
     // auto-update windows on boot
     try { elements.services.loadServices.click(); } catch {}

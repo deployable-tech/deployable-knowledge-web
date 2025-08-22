@@ -1,3 +1,5 @@
+import * as sessionStore from '../state/session_store.js';
+
 export const chatWindow = {
   id: 'chat',
   title: 'Chat',
@@ -21,7 +23,7 @@ export const chatWindow = {
   ]
 };
 
-export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, helpers, getPersona, deps = {} }) {
+export function setupChatUI({ getSDK, elements, helpers, getPersona, deps = {} }) {
   const { msg, send, meta, chatOut } = elements;
   const { templateId, topK, userId, svcSel, modelSel } = deps;
   const { ensureSDK, setBusy } = helpers;
@@ -47,7 +49,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
       ensureSDK();
       const sdk = getSDK();
       setBusy(send, true);
-      await ensureSession();
+      await sessionStore.ensure();
       meta.textContent = '';
       const userText = msg.value;
       appendMessage('user', userText);
@@ -55,7 +57,7 @@ export function setupChatUI({ getSDK, ensureSession, getSessionId, elements, hel
       const botDiv = appendMessage('bot', '');
       const p = {
         message: userText,
-        sessionId: getSessionId(),
+        sessionId: sessionStore.getCurrent(),
         userId: userId.value || 'local-user',
         serviceId: svcSel.value || undefined,
         modelId: modelSel.value || undefined,
