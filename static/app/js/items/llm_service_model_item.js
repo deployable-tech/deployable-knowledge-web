@@ -61,6 +61,14 @@ export function createLLMServiceModelSchema({
 
       edit: {
         extends: "default",
+        // In edit mode the title fields should render as editable inputs
+        // rather than static header labels. Override the default element
+        // config to drop the `format: "title"` flag which the shared
+        // renderer treats as display-only.
+        elements: {
+          name:       { type: "text", input: { type: "text" } },
+          model_name: { type: "text", input: { type: "text" } }
+        },
         use_inputs: true,
         actions_replace: true, // ← clean swap: only Save/Cancel in edit mode
         actions: [
