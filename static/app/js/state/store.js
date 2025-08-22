@@ -61,6 +61,8 @@ const store = {
     },
 
     setCurrent(id) {
+      if (this.currentId === id) return;
+
       this.currentId = id;
       this.emitChange(id);
     },
