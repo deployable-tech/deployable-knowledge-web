@@ -1,21 +1,22 @@
 import { DKClient } from './sdk.js';
-import { setupLLMServiceUI, servicesWindow } from './windows/llm_service.js';
+import { setupLLMServicesUI, servicesWindow } from './windows/llm_services.js';
+import { setupLLMModelsUI, modelsWindow } from './windows/llm_models.js';
 import { setupChatUI, chatWindow } from './windows/chat.js';
 import { setupDocumentsUI, documentsWindow } from './windows/documents.js';
 import { setupPromptTemplatesUI, templatesWindow } from './windows/prompt_templates.js';
-import { setupLLMServiceAdminUI, serviceAdminWindow } from './windows/llm_service_admin.js';
 import { setupChatHistoryUI, historyWindow } from './windows/chat_history.js';
 import { setupSearchUI, searchWindow } from './windows/search.js';
 import { setupPersonaUI, personaWindow } from './windows/persona.js';
 import { initWindows } from '../../ui/js/windows.js';
 import { LayoutOptions } from '../../ui/js/layout-windows.js';
 import { createMenu } from '../../ui/js/menu.js';
+import store from './state/store.js';
 
 const j = (o) => JSON.stringify(o, null, 2);
 
 const windows = [
   servicesWindow,
-  serviceAdminWindow,
+  modelsWindow,
   searchWindow,
   documentsWindow,
   chatWindow,
@@ -58,18 +59,90 @@ if (winMenuUI && layoutMenuUI) {
   layoutMenuUI.button.addEventListener('click', () => winMenuUI.menu.classList.remove('visible'));
 }
 
+const svcMenu = document.getElementById('svcMenu');
+const modelMenu = document.getElementById('modelMenu');
+
+async function refreshServiceMenu() {
+  try {
+    ensureSDK();
+    const list = await sdk.llm.listServices();
+    svcMenu.innerHTML = '';
+    const def = document.createElement('option');
+    def.value = '';
+    def.textContent = '-- service --';
+    svcMenu.appendChild(def);
+    for (const s of list) {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name || s.provider || s.id;
+      svcMenu.appendChild(opt);
+    }
+    const sel = store.llm.getSelection();
+    if (sel.serviceId && list.some(s => s.id === sel.serviceId)) {
+      svcMenu.value = sel.serviceId;
+    } else {
+      svcMenu.value = '';
+    }
+    await refreshModelMenu(svcMenu.value);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function refreshModelMenu(serviceId) {
+  modelMenu.innerHTML = '';
+  modelMenu.disabled = !serviceId;
+  if (!serviceId) return;
+  try {
+    ensureSDK();
+    const list = await sdk.llm.listModels(serviceId);
+    const def = document.createElement('option');
+    def.value = '';
+    def.textContent = '-- model --';
+    modelMenu.appendChild(def);
+    for (const m of list) {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.name || m.model_name || m.id;
+      modelMenu.appendChild(opt);
+    }
+    const sel = store.llm.getSelection();
+    if (sel.modelId && list.some(m => m.id === sel.modelId)) {
+      modelMenu.value = sel.modelId;
+    } else {
+      modelMenu.value = '';
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+svcMenu.addEventListener('change', async () => {
+  await store.llm.setSelection({ serviceId: svcMenu.value || undefined, modelId: undefined });
+  await refreshModelMenu(svcMenu.value);
+});
+
+modelMenu.addEventListener('change', async () => {
+  await store.llm.setSelection({ serviceId: svcMenu.value || undefined, modelId: modelMenu.value || undefined });
+});
+
+store.llm.onChange(async (sel) => {
+  if (svcMenu.value !== (sel.serviceId || '')) {
+    svcMenu.value = sel.serviceId || '';
+    await refreshModelMenu(sel.serviceId);
+  }
+  modelMenu.value = sel.modelId || '';
+});
+
 function openChat() {
   showWindow('chat');
 }
 window.openChat = openChat;
 window.showWindow = showWindow;
 
-const svcAdminWin = document.querySelector('.window[data-id="service-admin"]');
-if (svcAdminWin) svcAdminWin.style.display = 'none';
 
 // ---- state ----
 let sdk = null;
-let sessionId = null;
 
 // default API base -> same host, port 8000
 const API_BASE = `${location.protocol}//${location.hostname}:8000`;
@@ -87,10 +160,6 @@ function toastOK(outEl, data) {
 function toastERR(outEl, err) {
   outEl.textContent = err?.message || String(err);
   outEl.classList.remove('ok'); outEl.classList.add('err');
-}
-
-function setSession(id) {
-  sessionId = id;
 }
 
 function sdkHandler(btn, outEl, fn) {
@@ -112,13 +181,6 @@ function ensureSDK() {
   if (!sdk) throw new Error('Init SDK first.');
 }
 
-async function ensureSession() {
-  ensureSDK();
-  const res = await sdk.sessions.ensure();
-  setSession(res.session_id);
-  return sessionId;
-}
-
 // ---- setup windows ----
 setupSearchUI({
   getSDK: () => sdk,
@@ -137,23 +199,17 @@ const personaAPI = setupPersonaUI({ elements: elements.persona });
 
 setupChatUI({
   getSDK: () => sdk,
-  ensureSession,
-  getSessionId: () => sessionId,
   elements: elements.chat,
   helpers: { ensureSDK, setBusy },
   getPersona: personaAPI.getPersona,
   deps: {
     templateId: elements.templates.templateId,
     topK: elements.search.topK,
-    userId: elements.templates.userId,
-    svcSel: elements.services.svc,
-    modelSel: elements.services.model
+    userId: elements.templates.userId
   }
 });
 
 setupChatHistoryUI({
-  getSDK: () => sdk,
-  setSession: (id) => setSession(id),
   renderHistory: (s) => {
     showWindow('chat');
     const chatOut = elements.chat.chatOut;
@@ -176,15 +232,21 @@ setupChatHistoryUI({
     chatOut.scrollTop = chatOut.scrollHeight;
   },
   elements: elements.history,
-  helpers: { ensureSDK, setBusy, toastERR }
+  helpers: { setBusy, toastERR }
 });
 
-setupLLMServiceUI({
+const modelsAPI = setupLLMModelsUI({
   getSDK: () => sdk,
-  userIdEl: elements.templates.userId,
+  elements: elements.models,
+  helpers: { ensureSDK },
+  deps: { refreshModelMenu }
+});
+
+const servicesAPI = setupLLMServicesUI({
+  getSDK: () => sdk,
   elements: elements.services,
   helpers: { ensureSDK },
-  deps: { showWindow }
+  deps: { refreshServiceMenu, refreshModelServices: modelsAPI.fetchServices }
 });
 
 setupPromptTemplatesUI({
@@ -193,24 +255,23 @@ setupPromptTemplatesUI({
   helpers: { ensureSDK }
 });
 
-setupLLMServiceAdminUI({
-  getSDK: () => sdk,
-  elements: elements['service-admin'],
-  helpers: { ensureSDK, setBusy, toastOK, toastERR }
-});
 
 // Optional boot
 (async function boot() {
   try {
     sdk = new DKClient({ baseUrl: API_BASE });
+    store.init(() => sdk);
     window.sdk = sdk;
     await sdk.auth.beginUser();
-    const res = await sdk.sessions.ensure();
-    sessionId = res.session_id;
+    await store.session.ensure();
+    await store.session.list();
+    await store.llm.loadSelection();
 
-    // auto-update windows on boot
-    try { elements.services.loadServices.click(); } catch {}
-    try { elements.services.refreshSelection.click(); } catch {}
+    await modelsAPI.fetchServices();
+    await servicesAPI.fetchServices();
+    elements.models.svc.value = store.llm.getSelection().serviceId || '';
+    await modelsAPI.fetchModels();
+    await refreshServiceMenu();
     try { elements.documents.listDocs.click(); } catch {}
     try { elements.templates.loadTemplates.click(); } catch {}
     try { elements.templates.getSettings.click(); } catch {}

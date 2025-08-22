@@ -11,6 +11,7 @@ export function createLLMServiceSchema({
   onSave,    // optional hook after save
   onEdit,    // optional hook when entering edit
   onCancel,  // optional hook when canceling edit
+  onDelete,  // optional hook after delete
 } = {}) {
   return {
     modes: {
@@ -46,6 +47,13 @@ export function createLLMServiceSchema({
               ctx.setMode("edit");
             },
           },
+          {
+            id: "delete", label: "Delete", variant: "danger",
+            onAction: async (values, ctx) => {
+              await sdk?.llm?.deleteService(values.id);
+              await onDelete?.(values, ctx);
+            },
+          },
         ],
       },
 
@@ -57,11 +65,13 @@ export function createLLMServiceSchema({
           {
             id: "save", label: "Save", variant: "primary",
             onAction: async (values, ctx) => {
-              const patch = { ...values };
-              delete patch.id;
-              delete patch.created_at;
-              await sdk?.llm?.updateService(values.id, patch);
-              await onSave?.(patch, ctx);
+              const payload = { ...values };
+              delete payload.id;
+              delete payload.created_at;
+              let res;
+              if (values.id) res = await sdk?.llm?.updateService(values.id, payload);
+              else res = await sdk?.llm?.createService(payload);
+              await onSave?.(res, ctx);
               ctx.setMode("default");
             },
           },
